@@ -1,82 +1,92 @@
 # Biz-IGen
 
-**Générez automatiquement votre Business Model Canvas, Lean Canvas et Business Plan complet en moins de 30 minutes – propulsé par l'IA**
+Plateforme SaaS d'automatisation de Business Model Canvas, Lean Canvas et Business Plan via formulaire d'audit dynamique + IA.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js&logoColor=white)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-![Status](https://img.shields.io/badge/Status-En%20développement-yellow)
-[![Powered by AI](https://img.shields.io/badge/Powered%20by-OpenAI%20%2F%20Claude-orange?logo=openai&logoColor=white)](https://openai.com/)
+## Fonctionnalités
 
-**Biz-IGen** est une plateforme SaaS qui permet aux entrepreneurs, startups et PME (notamment en Afrique – Cameroun, secteurs tech, agricole, agroalimentaire, innovation) de créer très rapidement des documents stratégiques de qualité professionnelle :
+- **Formulaire dynamique** : Questions conditionnelles selon secteur, taille, pays
+- **Génération IA** : BMC, Lean Canvas, Business Plan complet en PDF/Word
+- **Authentification** : Clerk (email/Google + 2FA)
+- **Abonnements** : Stripe + Flutterwave (paiements Afrique)
+- **Support** : Chatbot IA
 
-- **Business Model Canvas** (BMC) – 9 blocs visuels interactifs  
-- **Lean Canvas** – version allégée et orientée startup  
-- **Business Plan complet** (20–50 pages) – résumé exécutif, analyse marché, SWOT/PESTEL, finances prévisionnelles, plan opérationnel, etc.
+## Stack Technique
 
-Tout cela est généré à partir d’un **formulaire d’audit dynamique et intelligent** (questions qui s’adaptent selon le secteur, le pays, le stade du projet) + une génération IA très contextualisée.
+- **Frontend** : Next.js 16 + Tailwind CSS + shadcn/ui
+- **Backend** : Next.js API Routes
+- **Base de données** : Supabase (PostgreSQL)
+- **Auth** : Clerk
+- **IA** : Grok (xAI)
+- **Paiements** : Stripe + Flutterwave
 
-## ✨ Pourquoi BizGen AI ?
+## Installation
 
-- Des semaines de travail réduites à 20–40 minutes  
-- Contenus et structures adaptés aux réalités africaines et marchés émergents  
-- Édition facile : drag-and-drop pour les canvases + éditeur texte pour le business plan  
-- Exports PDF, PNG, Word  
-- Modèle freemium : 1 projet gratuit par mois  
-- Paiement accessible en Afrique (Stripe + Flutterwave / mobile money)  
-- Focus secteurs : tech, agriculture, agroalimentaire, innovation sociale
+1. Clonez le repo
+2. Installez les dépendances : `npm install`
+3. Configurez les variables d'environnement :
+   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+   - `CLERK_SECRET_KEY`
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `GROK_API_KEY`
+   - `STRIPE_SECRET_KEY`
+   - `FLUTTERWAVE_SECRET_KEY`
+4. Lancez le serveur : `npm run dev`
 
-## Fonctionnalités principales (MVP)
+## Structure du Projet
 
-- Inscription & connexion (email + Google)  
-- Formulaire multi-étapes avec logique conditionnelle  
-- Génération automatique de BMC, Lean Canvas et Business Plan complet  
-- Visualisation interactive et édition des canvases (drag-and-drop)  
-- Éditeur riche pour personnaliser le business plan  
-- Prévisualisation et exports multiples  
-- Système d’abonnement (Stripe + Flutterwave)  
-- Dashboard avec historique des projets  
-- Chatbot d’assistance intégré (IA)
+- `src/app/` : Pages Next.js
+- `src/lib/` : Utilitaires (Supabase, types)
+- `src/components/` : Composants UI (shadcn)
 
-## Stack technique recommandée (2026)
+## Roadmap MVP
 
-- **Frontend** : Next.js 15 (App Router) + Tailwind CSS + shadcn/ui  
-- **Backend / API** : Next.js API Routes ou FastAPI (Python)  
-- **Base de données** : Supabase (PostgreSQL)  
-- **Authentification** : Clerk  
-- **IA / LLM** : OpenAI GPT-4o / Claude 3.5 Sonnet + LangChain  
-- **Paiements** : Stripe + Flutterwave  
-- **Stockage** : Supabase Storage  
-- **Hébergement** : Vercel (frontend) + Railway / Render (backend)  
-- **Monitoring** : Sentry + PostHog  
+- ✅ Sprint 1 : Auth + Dashboard
+- ✅ Sprint 2 : Formulaire dynamique
+- ✅ Sprint 3 : IA BMC + Lean Canvas
+- ✅ Sprint 4 : IA Business Plan + Export PDF
+- ✅ Sprint 5 : Paiements Stripe + Flutterwave
+- ✅ Sprint 6 : Édition + Support Chatbot IA
+- ✅ Sprint 7 : Tests E2E (Playwright)
+- 🔄 Sprint 8 : Beta Launch & Déploiement
 
-**Alternative rapide pour proto** : Bubble.io + Make.com + OpenAI
+## Variables d'Environnement
 
-## Roadmap
+Créer `.env.local` :
+```
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_SUPABASE_URL=https://...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+GROK_API_KEY=xai-...
+STRIPE_SECRET_KEY=sk_test_...
+FLUTTERWAVE_PUBLIC_KEY=FLWPUBK_TEST-...
+FLUTTERWAVE_SECRET_KEY=FLWSECK_TEST-...
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
 
-Phase     | Période estimée | Principales fonctionnalités
-----------|------------------|--------------------------------------
-MVP       | Q2 2026         | Auth + Formulaire + Génération BMC/LC/BP + Paiements
-V1        | Q3 2026         | Édition avancée + Templates sectoriels + FR/EN
-V1.1      | Q4 2026         | Pitch deck generator + CRM + PWA mobile
-V2        | 2027            | Marketplace de templates + IA personnalisée
+## Déploiement Production
 
-## Installation & Développement local
+1. **Supabase** : Créer projet, exécuter `database/schema.sql`
+2. **Clerk** : Configurer app, ajouter URLs de prod
+3. **Stripe** : Créer produits (basic/pro), webhook endpoint
+4. **Flutterwave** : Configurer pour XAF, Cameroun
+5. **Vercel** : Déployer frontend, ajouter env vars
+6. **Railway** : Backend si API séparée (optionnel)
+
+## Tests
 
 ```bash
-# 1. Cloner le projet
-git clone https://github.com/VOTRE_USERNAME/bizgen-ai.git
-cd bizgen-ai
+npm run test  # E2E tests
+npm run lint  # Code quality
+```
 
-# 2. Installer les dépendances
-npm install
-# ou yarn install / pnpm install
+## Métriques MVP
 
-# 3. Copier le fichier d'environnement
-cp .env.example .env.local
+- Authentification : ✅ Clerk
+- Performance : <45s génération IA
+- Mobile-friendly : ✅ Responsive
+- Paiements Afrique : ✅ Flutterwave
+- Support : ✅ Chatbot IA
 
-# 4. Remplir .env.local avec vos clés (Clerk, OpenAI, Stripe, Supabase...)
-
-# 5. Lancer le serveur
-npm run dev
-# → http://localhost:3000
+🚀 **Prêt pour beta test avec entrepreneurs camerounais !**
