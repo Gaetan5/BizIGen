@@ -309,6 +309,15 @@ export const projectsApi = {
 // GENERATE API
 // ============================================
 
+export interface GenerateProgressEvent {
+  step: string;
+  progress: number;
+  message: string;
+  data?: Record<string, unknown>;
+  projectId?: string;
+  results?: Record<string, unknown>;
+}
+
 export const generateApi = {
   generate: async (projectId: string, type: 'bmc' | 'lean' | 'bp' | 'all' = 'all') => {
     const token = getStoredToken();
@@ -323,6 +332,8 @@ export const generateApi = {
         lean?: Record<string, unknown>;
         bp?: Record<string, unknown>;
       };
+      model_used?: string;
+      generation_time_ms?: number;
     }>(
       '/generate',
       {
@@ -331,6 +342,91 @@ export const generateApi = {
         token,
       }
     );
+  },
+  
+  /**
+   * Stream generation progress using Server-Sent Events (SSE)
+   * @param projectId Project ID
+   * @param type Document type to generate
+   * @param onProgress Callback for progress updates
+   * @param onError Callback for errors
+   * @param onComplete Callback when generation completes
+   */
+  generateStream: async (
+    projectId: string,
+    type: 'bmc' | 'lean' | 'bp' | 'all' = 'all',
+    onProgress?: (event: GenerateProgressEvent) => void,
+    onError?: (error: string) => void,
+    onComplete?: (results: Record<string, unknown>) => void
+  ) => {
+    const token = getStoredToken();
+    if (!token) {
+      onError?.('Not authenticated');
+      return;
+    }
+    
+    const url = getFastApiUrl('/generate/stream');
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ projectId, type }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+        onError?.(errorData.detail || `Error: ${response.status}`);
+        return;
+      }
+      
+      const reader = response.body?.getReader();
+      if (!reader) {
+        onError?.('No response body');
+        return;
+      }
+      
+      const decoder = new TextDecoder();
+      let buffer = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Process complete SSE messages
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || ''; // Keep incomplete message in buffer
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const eventData = JSON.parse(line.slice(6)) as GenerateProgressEvent;
+              onProgress?.(eventData);
+              
+              // Handle completion
+              if (eventData.step === 'complete') {
+                onComplete?.(eventData.results || {});
+              }
+              
+              // Handle errors
+              if (eventData.step.endsWith('_error') || eventData.step === 'error') {
+                onError?.(eventData.message);
+              }
+            } catch (e) {
+              console.error('Failed to parse SSE data:', e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      onError?.(error instanceof Error ? error.message : 'Network error');
+    }
   },
   
   status: async (projectId: string) => {
@@ -344,6 +440,30 @@ export const generateApi = {
       completedAt: string | null;
     }>(
       `/generate/status/${projectId}`,
+      { token }
+    );
+  },
+  
+  /**
+   * Get AI service metrics (admin only)
+   */
+  metrics: async () => {
+    const token = getStoredToken();
+    if (!token) return { success: false, error: 'Not authenticated' };
+    
+    return apiRequest<{
+      total_generations: number;
+      avg_generation_time_ms: number;
+      total_tokens_used: number;
+      cache_hit_rate: number;
+      total_errors: number;
+      cache: {
+        memory_cache_size: number;
+        redis_available: boolean;
+        ttl_seconds: number;
+      };
+    }>(
+      '/generate/metrics',
       { token }
     );
   },

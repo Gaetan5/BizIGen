@@ -1,14 +1,18 @@
 """
 BizGen AI - Generate Router
 Handles AI-powered document generation
+With enhanced AI service: retry, validation, caching, streaming
 """
 from fastapi import APIRouter, HTTPException, Depends, status, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Dict, Any, Optional
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import json
+import asyncio
+import logging
 
 from app.database import get_db
 from app.models.models import (
@@ -16,7 +20,15 @@ from app.models.models import (
     CanvasData, AuditLog
 )
 from app.routers.auth import get_current_user
-from app.services.ai_service import ai_service
+from app.services.enhanced_ai_service import (
+    enhanced_ai_service,
+    AIServiceError,
+    AIValidationError,
+    AITimeoutError,
+)
+from app.schemas.ai_schemas import AIResponseType
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/generate", tags=["AI Generation"])
 
@@ -26,15 +38,29 @@ router = APIRouter(prefix="/generate", tags=["AI Generation"])
 # ============================================
 
 class GenerateRequest(BaseModel):
+    """Generate documents request"""
     projectId: str
-    type: str = "all"  # bmc, lean, bp, all
+    type: str = Field(default="all", pattern="^(bmc|lean|bp|all)$")
 
 
 class GenerateResponse(BaseModel):
+    """Generate documents response"""
     success: bool
-    documentId: str
+    documentId: Optional[str] = None
     status: str
     results: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    validation_errors: Optional[list] = None
+    model_used: Optional[str] = None
+    generation_time_ms: Optional[float] = None
+
+
+class StreamProgress(BaseModel):
+    """Progress update for streaming"""
+    step: str
+    progress: int  # 0-100
+    message: str
+    timestamp: str
 
 
 # ============================================
@@ -48,12 +74,15 @@ async def generate_documents(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Generate BMC, Lean Canvas, and/or Business Plan"""
+    """
+    Generate BMC, Lean Canvas, and/or Business Plan
+    With validation, caching, and error handling
+    """
+    start_time = datetime.utcnow()
     
     # Get project with form inputs
     result = await db.execute(
-        select(Project)
-        .where(
+        select(Project).where(
             Project.id == request.projectId,
             Project.userId == current_user.id
         )
@@ -68,8 +97,7 @@ async def generate_documents(
     
     # Get form inputs
     result = await db.execute(
-        select(FormInput)
-        .where(FormInput.projectId == project.id)
+        select(FormInput).where(FormInput.projectId == project.id)
     )
     form_inputs = result.scalars().all()
     
@@ -88,8 +116,7 @@ async def generate_documents(
     
     # Create or get generated document
     result = await db.execute(
-        select(GeneratedDocument)
-        .where(GeneratedDocument.projectId == project.id)
+        select(GeneratedDocument).where(GeneratedDocument.projectId == project.id)
     )
     gen_doc = result.scalar_one_or_none()
     
@@ -106,77 +133,135 @@ async def generate_documents(
         gen_doc.updatedAt = datetime.utcnow()
     
     results = {}
+    errors = []
+    total_time_ms = 0
+    last_model_used = None
     
     try:
         # Generate BMC
         if request.type in ["bmc", "all"]:
-            bmc_data = await ai_service.generate_bmc(
-                form_data, project.sector, project.country
-            )
-            results["bmc"] = bmc_data
-            
-            # Save canvas
-            result = await db.execute(
-                select(CanvasData).where(
-                    CanvasData.docId == gen_doc.id,
-                    CanvasData.canvasType == "BUSINESS_MODEL_CANVAS"
+            try:
+                logger.info(f"Generating BMC for project {project.id}")
+                validated = await enhanced_ai_service.generate_bmc(
+                    form_data=form_data,
+                    sector=project.sector,
+                    country=project.country,
+                    use_cache=True,
                 )
-            )
-            existing_canvas = result.scalar_one_or_none()
-            
-            if existing_canvas:
-                existing_canvas.blocks = json.dumps(bmc_data, ensure_ascii=False)
-                existing_canvas.updatedAt = datetime.utcnow()
-            else:
-                canvas = CanvasData(
-                    docId=gen_doc.id,
-                    canvasType="BUSINESS_MODEL_CANVAS",
-                    blocks=json.dumps(bmc_data, ensure_ascii=False)
-                )
-                db.add(canvas)
+                
+                if validated.is_valid:
+                    results["bmc"] = validated.content
+                    last_model_used = validated.model_used
+                    total_time_ms += validated.generation_time_ms or 0
+                    
+                    # Save canvas
+                    result = await db.execute(
+                        select(CanvasData).where(
+                            CanvasData.docId == gen_doc.id,
+                            CanvasData.canvasType == "BUSINESS_MODEL_CANVAS"
+                        )
+                    )
+                    existing_canvas = result.scalar_one_or_none()
+                    
+                    if existing_canvas:
+                        existing_canvas.blocks = json.dumps(validated.content, ensure_ascii=False)
+                        existing_canvas.updatedAt = datetime.utcnow()
+                    else:
+                        canvas = CanvasData(
+                            docId=gen_doc.id,
+                            canvasType="BUSINESS_MODEL_CANVAS",
+                            blocks=json.dumps(validated.content, ensure_ascii=False)
+                        )
+                        db.add(canvas)
+                    
+                    logger.info(f"BMC generated successfully (model: {validated.model_used}, time: {validated.generation_time_ms:.0f}ms)")
+                else:
+                    errors.append(f"BMC validation failed: {validated.validation_errors}")
+                    results["bmc_error"] = validated.validation_errors
+                    
+            except AIValidationError as e:
+                errors.append(f"BMC validation error: {str(e)}")
+                logger.error(f"BMC validation error: {e}")
+            except AIServiceError as e:
+                errors.append(f"BMC generation error: {str(e)}")
+                logger.error(f"BMC generation error: {e}")
         
         # Generate Lean Canvas
         if request.type in ["lean", "all"]:
-            lean_data = await ai_service.generate_lean_canvas(
-                form_data, project.sector
-            )
-            results["lean"] = lean_data
-            
-            # Save canvas
-            result = await db.execute(
-                select(CanvasData).where(
-                    CanvasData.docId == gen_doc.id,
-                    CanvasData.canvasType == "LEAN_CANVAS"
+            try:
+                logger.info(f"Generating Lean Canvas for project {project.id}")
+                validated = await enhanced_ai_service.generate_lean_canvas(
+                    form_data=form_data,
+                    sector=project.sector,
+                    use_cache=True,
                 )
-            )
-            existing_canvas = result.scalar_one_or_none()
-            
-            if existing_canvas:
-                existing_canvas.blocks = json.dumps(lean_data, ensure_ascii=False)
-                existing_canvas.updatedAt = datetime.utcnow()
-            else:
-                canvas = CanvasData(
-                    docId=gen_doc.id,
-                    canvasType="LEAN_CANVAS",
-                    blocks=json.dumps(lean_data, ensure_ascii=False)
-                )
-                db.add(canvas)
+                
+                if validated.is_valid:
+                    results["lean"] = validated.content
+                    last_model_used = validated.model_used
+                    total_time_ms += validated.generation_time_ms or 0
+                    
+                    # Save canvas
+                    result = await db.execute(
+                        select(CanvasData).where(
+                            CanvasData.docId == gen_doc.id,
+                            CanvasData.canvasType == "LEAN_CANVAS"
+                        )
+                    )
+                    existing_canvas = result.scalar_one_or_none()
+                    
+                    if existing_canvas:
+                        existing_canvas.blocks = json.dumps(validated.content, ensure_ascii=False)
+                        existing_canvas.updatedAt = datetime.utcnow()
+                    else:
+                        canvas = CanvasData(
+                            docId=gen_doc.id,
+                            canvasType="LEAN_CANVAS",
+                            blocks=json.dumps(validated.content, ensure_ascii=False)
+                        )
+                        db.add(canvas)
+                    
+                    logger.info(f"Lean Canvas generated successfully (model: {validated.model_used})")
+                else:
+                    errors.append(f"Lean validation failed: {validated.validation_errors}")
+                    
+            except AIServiceError as e:
+                errors.append(f"Lean Canvas error: {str(e)}")
+                logger.error(f"Lean Canvas error: {e}")
         
         # Generate Business Plan
         if request.type in ["bp", "all"]:
-            bp_data = await ai_service.generate_business_plan(
-                form_data, project.sector, project.country
-            )
-            results["bp"] = bp_data
-            
-            # Save to raw content
-            gen_doc.rawContent = json.dumps(bp_data, ensure_ascii=False)
+            try:
+                logger.info(f"Generating Business Plan for project {project.id}")
+                validated = await enhanced_ai_service.generate_business_plan(
+                    form_data=form_data,
+                    sector=project.sector,
+                    country=project.country,
+                    use_cache=True,
+                )
+                
+                if validated.is_valid:
+                    results["bp"] = validated.content
+                    last_model_used = validated.model_used
+                    total_time_ms += validated.generation_time_ms or 0
+                    gen_doc.rawContent = json.dumps(validated.content, ensure_ascii=False)
+                    logger.info(f"Business Plan generated successfully (model: {validated.model_used})")
+                else:
+                    errors.append(f"BP validation failed: {validated.validation_errors}")
+                    
+            except AIServiceError as e:
+                errors.append(f"Business Plan error: {str(e)}")
+                logger.error(f"Business Plan error: {e}")
         
-        # Update status to completed
-        gen_doc.status = "COMPLETED"
-        gen_doc.version = (gen_doc.version or 0) + 1
-        project.status = "COMPLETED"
-        project.completedAt = datetime.utcnow()
+        # Update status
+        if results:
+            gen_doc.status = "COMPLETED"
+            gen_doc.version = (gen_doc.version or 0) + 1
+            project.status = "COMPLETED"
+            project.completedAt = datetime.utcnow()
+        else:
+            gen_doc.status = "FAILED"
+            project.status = "DRAFT"
         
         # Create audit log
         audit = AuditLog(
@@ -184,20 +269,30 @@ async def generate_documents(
             action="GENERATE_DOCUMENTS",
             entityType="Project",
             entityId=project.id,
-            metadata=json.dumps({"type": request.type}, ensure_ascii=False)
+            metadata=json.dumps({
+                "type": request.type,
+                "results_count": len(results),
+                "errors": errors,
+                "model_used": last_model_used,
+                "duration_ms": int((datetime.utcnow() - start_time).total_seconds() * 1000)
+            }, ensure_ascii=False)
         )
         db.add(audit)
         
         await db.flush()
         
         return GenerateResponse(
-            success=True,
+            success=len(results) > 0,
             documentId=gen_doc.id,
-            status="COMPLETED",
-            results=results
+            status=gen_doc.status,
+            results=results if results else None,
+            error="; ".join(errors) if errors else None,
+            model_used=last_model_used,
+            generation_time_ms=total_time_ms,
         )
         
     except Exception as e:
+        logger.exception(f"Unexpected error during generation: {e}")
         gen_doc.status = "FAILED"
         project.status = "DRAFT"
         
@@ -205,6 +300,134 @@ async def generate_documents(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error generating documents: {str(e)}"
         )
+
+
+@router.post("/stream")
+async def generate_documents_stream(
+    request: GenerateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Stream generation progress with real-time updates
+    Uses Server-Sent Events (SSE)
+    """
+    
+    async def generate_with_progress():
+        """Generator for streaming progress updates"""
+        
+        # Initial validation
+        yield f"data: {json.dumps({'step': 'init', 'progress': 5, 'message': 'Validation du projet...'})}\n\n"
+        await asyncio.sleep(0.1)
+        
+        # Get project
+        result = await db.execute(
+            select(Project).where(
+                Project.id == request.projectId,
+                Project.userId == current_user.id
+            )
+        )
+        project = result.scalar_one_or_none()
+        
+        if not project:
+            yield f"data: {json.dumps({'step': 'error', 'progress': 0, 'message': 'Projet non trouvé'})}\n\n"
+            return
+        
+        # Get form inputs
+        result = await db.execute(
+            select(FormInput).where(FormInput.projectId == project.id)
+        )
+        form_inputs = result.scalars().all()
+        
+        if not form_inputs:
+            yield f"data: {json.dumps({'step': 'error', 'progress': 0, 'message': 'Aucune donnée de formulaire'})}\n\n"
+            return
+        
+        form_data = {inp.questionKey: inp.answerValue for inp in form_inputs}
+        
+        # Update status
+        project.status = "GENERATING"
+        await db.flush()
+        
+        total_steps = 3 if request.type == "all" else 1
+        current_step = 0
+        results = {}
+        
+        # Generate BMC
+        if request.type in ["bmc", "all"]:
+            current_step += 1
+            progress = int((current_step / total_steps) * 90)
+            yield f"data: {json.dumps({'step': 'bmc', 'progress': progress, 'message': 'Génération du Business Model Canvas...'})}\n\n"
+            
+            try:
+                validated = await enhanced_ai_service.generate_bmc(
+                    form_data=form_data,
+                    sector=project.sector,
+                    country=project.country,
+                )
+                
+                if validated.is_valid:
+                    results["bmc"] = validated.content
+                    yield f"data: {json.dumps({'step': 'bmc_complete', 'progress': progress + 5, 'message': 'BMC généré avec succès!', 'data': validated.content})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'step': 'bmc_error', 'progress': progress, 'message': f'Erreur BMC: {validated.validation_errors}'})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'step': 'bmc_error', 'progress': progress, 'message': f'Erreur: {str(e)}'})}\n\n"
+        
+        # Generate Lean Canvas
+        if request.type in ["lean", "all"]:
+            current_step += 1
+            progress = int((current_step / total_steps) * 90)
+            yield f"data: {json.dumps({'step': 'lean', 'progress': progress, 'message': 'Génération du Lean Canvas...'})}\n\n"
+            
+            try:
+                validated = await enhanced_ai_service.generate_lean_canvas(
+                    form_data=form_data,
+                    sector=project.sector,
+                )
+                
+                if validated.is_valid:
+                    results["lean"] = validated.content
+                    yield f"data: {json.dumps({'step': 'lean_complete', 'progress': progress + 5, 'message': 'Lean Canvas généré!', 'data': validated.content})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'step': 'lean_error', 'progress': progress, 'message': f'Erreur: {str(e)}'})}\n\n"
+        
+        # Generate Business Plan
+        if request.type in ["bp", "all"]:
+            current_step += 1
+            progress = int((current_step / total_steps) * 90)
+            yield f"data: {json.dumps({'step': 'bp', 'progress': progress, 'message': 'Génération du Business Plan...'})}\n\n"
+            
+            try:
+                validated = await enhanced_ai_service.generate_business_plan(
+                    form_data=form_data,
+                    sector=project.sector,
+                    country=project.country,
+                )
+                
+                if validated.is_valid:
+                    results["bp"] = validated.content
+                    yield f"data: {json.dumps({'step': 'bp_complete', 'progress': progress + 5, 'message': 'Business Plan généré!', 'data': validated.content})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'step': 'bp_error', 'progress': progress, 'message': f'Erreur: {str(e)}'})}\n\n"
+        
+        # Update final status
+        project.status = "COMPLETED"
+        project.completedAt = datetime.utcnow()
+        await db.flush()
+        
+        # Complete
+        yield f"data: {json.dumps({'step': 'complete', 'progress': 100, 'message': 'Génération terminée avec succès!', 'projectId': project.id, 'results': results})}\n\n"
+    
+    return StreamingResponse(
+        generate_with_progress(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
 
 @router.get("/status/{project_id}")
@@ -216,8 +439,7 @@ async def get_generation_status(
     """Get generation status for a project"""
     
     result = await db.execute(
-        select(Project)
-        .where(
+        select(Project).where(
             Project.id == project_id,
             Project.userId == current_user.id
         )
@@ -231,8 +453,7 @@ async def get_generation_status(
         )
     
     result = await db.execute(
-        select(GeneratedDocument)
-        .where(GeneratedDocument.projectId == project_id)
+        select(GeneratedDocument).where(GeneratedDocument.projectId == project_id)
     )
     gen_doc = result.scalar_one_or_none()
     
@@ -242,3 +463,37 @@ async def get_generation_status(
         "version": gen_doc.version if gen_doc else 0,
         "completedAt": project.completedAt.isoformat() if project.completedAt else None
     }
+
+
+@router.get("/metrics")
+async def get_ai_metrics(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get AI service metrics (admin only)"""
+    
+    if current_user.role != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    
+    return enhanced_ai_service.get_metrics()
+
+
+@router.post("/cache/clear")
+async def clear_ai_cache(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Clear AI generation cache (admin only)"""
+    
+    if current_user.role != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    
+    enhanced_ai_service.cache.clear()
+    
+    return {"success": True, "message": "AI cache cleared"}

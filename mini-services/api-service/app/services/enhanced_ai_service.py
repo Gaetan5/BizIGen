@@ -137,41 +137,130 @@ class AITimeoutError(AIServiceError):
 
 
 # ============================================
-# Cache Service (Simple In-Memory with TTL)
+# Cache Service (Redis with In-Memory Fallback)
 # ============================================
 
 class AICache:
-    """Simple in-memory cache with TTL"""
+    """
+    AI Cache with Redis backend and in-memory fallback.
+    Supports both sync and async operations.
+    """
     
     def __init__(self, ttl_seconds: int = 86400):  # 24 hours default
         self._cache: Dict[str, tuple[Any, float]] = {}
         self._ttl = ttl_seconds
+        self._redis = None
+        self._redis_available = False
+        self._prefix = "bizgen:ai:"
+    
+    async def _init_redis(self):
+        """Initialize Redis connection lazily"""
+        if self._redis is not None:
+            return
+        
+        redis_url = settings.REDIS_URL
+        if not redis_url:
+            logger.info("No REDIS_URL configured, using in-memory cache")
+            self._redis_available = False
+            return
+        
+        try:
+            import redis.asyncio as redis
+            self._redis = redis.from_url(redis_url, decode_responses=True)
+            # Test connection
+            await self._redis.ping()
+            self._redis_available = True
+            logger.info(f"Redis cache initialized: {redis_url.split('@')[1] if '@' in redis_url else redis_url}")
+        except Exception as e:
+            logger.warning(f"Redis connection failed, falling back to in-memory cache: {e}")
+            self._redis_available = False
+            self._redis = None
     
     def _hash_key(self, data: Dict[str, Any]) -> str:
         """Create hash key from data"""
         json_str = json.dumps(data, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(json_str.encode()).hexdigest()
     
-    def get(self, key: str) -> Optional[Any]:
-        """Get cached value"""
+    async def aget(self, key: str) -> Optional[Any]:
+        """Async get cached value"""
+        # Try Redis first
+        if self._redis_available and self._redis:
+            try:
+                cached = await self._redis.get(f"{self._prefix}{key}")
+                if cached:
+                    logger.debug(f"Redis cache HIT: {key[:16]}...")
+                    return json.loads(cached)
+            except Exception as e:
+                logger.warning(f"Redis get error: {e}")
+        
+        # Fallback to in-memory
         if key in self._cache:
             value, expires_at = self._cache[key]
             if time.time() < expires_at:
-                logger.debug(f"Cache HIT: {key[:16]}...")
+                logger.debug(f"Memory cache HIT: {key[:16]}...")
+                return value
+            else:
+                del self._cache[key]
+        
+        logger.debug(f"Cache MISS: {key[:16]}...")
+        return None
+    
+    def get(self, key: str) -> Optional[Any]:
+        """Sync get cached value (in-memory only)"""
+        if key in self._cache:
+            value, expires_at = self._cache[key]
+            if time.time() < expires_at:
+                logger.debug(f"Memory cache HIT: {key[:16]}...")
                 return value
             else:
                 del self._cache[key]
         logger.debug(f"Cache MISS: {key[:16]}...")
         return None
     
+    async def aset(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+        """Async set cached value"""
+        ttl_value = ttl or self._ttl
+        
+        # Try Redis first
+        if self._redis_available and self._redis:
+            try:
+                await self._redis.setex(
+                    f"{self._prefix}{key}",
+                    ttl_value,
+                    json.dumps(value, ensure_ascii=False)
+                )
+                logger.debug(f"Redis cache SET: {key[:16]}... (TTL: {ttl_value}s)")
+                return
+            except Exception as e:
+                logger.warning(f"Redis set error: {e}")
+        
+        # Fallback to in-memory
+        expires_at = time.time() + ttl_value
+        self._cache[key] = (value, expires_at)
+        logger.debug(f"Memory cache SET: {key[:16]}... (TTL: {ttl_value}s)")
+    
     def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
-        """Set cached value"""
+        """Sync set cached value (in-memory only)"""
         expires_at = time.time() + (ttl or self._ttl)
         self._cache[key] = (value, expires_at)
-        logger.debug(f"Cache SET: {key[:16]}... (TTL: {ttl or self._ttl}s)")
+        logger.debug(f"Memory cache SET: {key[:16]}... (TTL: {ttl or self._ttl}s)")
+    
+    async def aget_or_set(self, key: str, factory, ttl: Optional[int] = None) -> Any:
+        """Async get or compute and cache"""
+        # Initialize Redis if needed
+        if settings.REDIS_URL and self._redis is None:
+            await self._init_redis()
+        
+        cached = await self.aget(key)
+        if cached is not None:
+            return cached
+        
+        value = await factory()
+        await self.aset(key, value, ttl)
+        return value
     
     def get_or_set(self, key: str, factory, ttl: Optional[int] = None) -> Any:
-        """Get or compute and cache"""
+        """Sync get or compute and cache (in-memory only)"""
         cached = self.get(key)
         if cached is not None:
             return cached
@@ -180,20 +269,34 @@ class AICache:
         self.set(key, value, ttl)
         return value
     
-    async def aget_or_set(self, key: str, factory, ttl: Optional[int] = None) -> Any:
-        """Async get or compute and cache"""
-        cached = self.get(key)
-        if cached is not None:
-            return cached
+    async def aclear(self) -> None:
+        """Async clear all cache"""
+        # Clear Redis
+        if self._redis_available and self._redis:
+            try:
+                keys = await self._redis.keys(f"{self._prefix}*")
+                if keys:
+                    await self._redis.delete(*keys)
+                logger.info("Redis cache cleared")
+            except Exception as e:
+                logger.warning(f"Redis clear error: {e}")
         
-        value = await factory()
-        self.set(key, value, ttl)
-        return value
+        # Clear in-memory
+        self._cache.clear()
+        logger.info("Memory cache cleared")
     
     def clear(self) -> None:
-        """Clear all cache"""
+        """Sync clear all cache (in-memory only)"""
         self._cache.clear()
-        logger.info("Cache cleared")
+        logger.info("Memory cache cleared")
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get cache statistics"""
+        return {
+            "memory_cache_size": len(self._cache),
+            "redis_available": self._redis_available,
+            "ttl_seconds": self._ttl,
+        }
 
 
 # Global cache instance
@@ -363,9 +466,13 @@ class EnhancedAIService:
         """
         config = model_config or MODEL_CONFIGS.get(response_type.value, MODEL_CONFIGS["default"])
         
-        # Check cache
+        # Initialize Redis if available
+        if settings.REDIS_URL and self.cache._redis is None:
+            await self.cache._init_redis()
+        
+        # Check cache (async)
         if cache_key:
-            cached = self.cache.get(cache_key)
+            cached = await self.cache.aget(cache_key)
             if cached:
                 self._metrics["cache_hits"].append(1)
                 return ValidatedAIResponse(
@@ -412,9 +519,9 @@ class EnhancedAIService:
                 validated.generation_time_ms = result.get("generation_time_ms")
                 validated.raw_response = result.get("content")
                 
-                # Cache successful response
+                # Cache successful response (async)
                 if cache_key:
-                    self.cache.set(cache_key, {
+                    await self.cache.aset(cache_key, {
                         "content": validated.content,
                         "raw": validated.raw_response,
                         "model": validated.model_used,
@@ -761,6 +868,7 @@ Sois concis, pratique et encourageant. Réponds en français."""
                 if self._metrics["cache_hits"] else 0
             ),
             "total_errors": len(self._metrics["errors"]),
+            "cache": self.cache.get_stats(),
         }
 
 
