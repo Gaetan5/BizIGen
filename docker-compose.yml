@@ -1,0 +1,194 @@
+# ============================================
+# BizGen AI - Docker Compose Configuration
+# Production-ready multi-service orchestration
+# ============================================
+
+version: "3.9"
+
+services:
+  # ============================================
+  # API Service - FastAPI Backend
+  # ============================================
+  api:
+    build:
+      context: ./mini-services/api-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: bizgen-api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - APP_NAME=BizGen AI API
+      - API_PORT=3001
+      - DEBUG=${DEBUG:-false}
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-bizgen}:${POSTGRES_PASSWORD:-bizgen123}@postgres:5432/${POSTGRES_DB:-bizgen}
+      - REDIS_URL=redis://redis:6379/0
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - AI_MODEL=${AI_MODEL:-gpt-4o-mini}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_BASIC_PRICE_ID=${STRIPE_BASIC_PRICE_ID:-}
+      - STRIPE_PRO_PRICE_ID=${STRIPE_PRO_PRICE_ID:-}
+      - FLUTTERWAVE_SECRET_KEY=${FLUTTERWAVE_SECRET_KEY:-}
+      - FLUTTERWAVE_PUBLIC_KEY=${FLUTTERWAVE_PUBLIC_KEY:-}
+      - FLUTTERWAVE_WEBHOOK_HASH=${FLUTTERWAVE_WEBHOOK_HASH:-}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - EMAIL_FROM=${EMAIL_FROM:-}
+    volumes:
+      - api-logs:/app/logs
+      - api-exports:/app/exports
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - bizgen-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ============================================
+  # PostgreSQL Database
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: bizgen-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-bizgen}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-bizgen123}
+      - POSTGRES_DB=${POSTGRES_DB:-bizgen}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./mini-services/api-service/migrations/postgres_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    networks:
+      - bizgen-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bizgen} -d ${POSTGRES_DB:-bizgen}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ============================================
+  # Redis Cache
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: bizgen-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - bizgen-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # Nginx Reverse Proxy (Optional - for production)
+  # ============================================
+  nginx:
+    image: nginx:alpine
+    container_name: bizgen-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    networks:
+      - bizgen-network
+    profiles:
+      - production
+
+  # ============================================
+  # Prometheus Monitoring (Optional)
+  # ============================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: bizgen-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - bizgen-network
+    profiles:
+      - monitoring
+
+  # ============================================
+  # Grafana Dashboard (Optional)
+  # ============================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: bizgen-grafana
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+      - GF_INSTALL_PLUGINS=redis-datasource
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+      - redis
+    networks:
+      - bizgen-network
+    profiles:
+      - monitoring
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  bizgen-network:
+    driver: bridge
+    name: bizgen-network
+
+# ============================================
+# Volumes
+# ============================================
+volumes:
+  postgres-data:
+    name: bizgen-postgres-data
+  redis-data:
+    name: bizgen-redis-data
+  api-logs:
+    name: bizgen-api-logs
+  api-exports:
+    name: bizgen-api-exports
+  prometheus-data:
+    name: bizgen-prometheus-data
+  grafana-data:
+    name: bizgen-grafana-data

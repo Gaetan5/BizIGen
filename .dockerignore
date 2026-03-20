@@ -1,13 +1,97 @@
-Dockerfile
+# ============================================
+# BizGen AI - Docker Ignore
+# ============================================
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Testing
+coverage/
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.docker/
 .dockerignore
-node_modules
-npm-debug.log
-README.md
-.next
-.git
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
-test
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
 *.log
-local-*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+db/
+
+# Uploads & Exports
+uploads/
+exports/
+download/
+
+# Cache
+.cache/
+.redis/
+.mypy_cache/
+.ruff_cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+docs/
+
+# Test files
+tests/
+test/
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+
+# Misc
+.eslintcache
+.prettierignore
+.prettierrc
+tsconfig.json
+jsconfig.json

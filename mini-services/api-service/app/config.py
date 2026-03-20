@@ -1,16 +1,43 @@
 """
 BizGen AI - FastAPI Configuration
+Supports both Docker (PostgreSQL) and local (SQLite) environments
 """
 from pydantic_settings import BaseSettings
 from typing import Optional
 from functools import lru_cache
 from pathlib import Path
 import os
+import logging
 
+logger = logging.getLogger(__name__)
 
 # Get the project root directory (3 levels up from this file)
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 DB_PATH = PROJECT_ROOT / "db" / "custom.db"
+
+
+def get_database_url() -> str:
+    """
+    Get database URL based on environment.
+    - Docker/Production: Use DATABASE_URL env var (PostgreSQL)
+    - Local/Development: Use SQLite
+    """
+    # Check if running in Docker (DATABASE_URL will be set)
+    database_url = os.getenv("DATABASE_URL")
+    
+    if database_url:
+        # Convert postgres:// to postgresql+asyncpg:// for SQLAlchemy
+        if database_url.startswith("postgresql://"):
+            database_url = database_url.replace("postgresql://", "postgresql+asyncpg://")
+        elif database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql+asyncpg://")
+        logger.info(f"Using PostgreSQL database: {database_url.split('@')[1] if '@' in database_url else 'configured'}")
+        return database_url
+    
+    # Fallback to SQLite for local development
+    sqlite_url = f"sqlite+aiosqlite:///{DB_PATH}"
+    logger.info(f"Using SQLite database: {DB_PATH}")
+    return sqlite_url
 
 
 class Settings(BaseSettings):
@@ -22,8 +49,8 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     API_PORT: int = 3001
     
-    # Database - Use same DB as Prisma
-    DATABASE_URL: str = f"sqlite+aiosqlite:///{DB_PATH}"
+    # Database - Auto-detect from environment
+    DATABASE_URL: str = ""  # Will be set dynamically
     
     # Security
     SECRET_KEY: str = "dev-secret-key-change-in-production-min-32-chars"
@@ -78,6 +105,11 @@ class Settings(BaseSettings):
         env_file = ".env"
         case_sensitive = True
         extra = "ignore"
+    
+    def model_post_init(self, __context):
+        """Set DATABASE_URL dynamically after initialization"""
+        if not self.DATABASE_URL:
+            object.__setattr__(self, 'DATABASE_URL', get_database_url())
     
     def validate_production(self) -> list[str]:
         """Validate settings for production environment"""
