@@ -1,0 +1,429 @@
+// BizGen AI - Prisma Schema
+// Business Model Canvas, Lean Canvas & Business Plan Generator
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  avatarUrl     String?
+  locale        String    @default("fr")
+  role          Role      @default(USER)
+  passwordHash  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  projects      Project[]
+  subscription  Subscription?
+  chatSessions  ChatSession[]
+  tickets       Ticket[]
+  exports       Export[]
+  auditLogs     AuditLog[]
+
+  @@index([email])
+}
+
+enum Role {
+  USER
+  CONSULTANT
+  ADMIN
+}
+
+// ============================================
+// PROJECT & FORM DATA
+// ============================================
+
+model Project {
+  id          String        @id @default(cuid())
+  userId      String
+  name        String
+  sector      Sector
+  subSector   String?
+  country     String        @default("CM")
+  status      ProjectStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  completedAt DateTime?
+
+  // Relations
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  formInputs    FormInput[]
+  generatedDoc  GeneratedDocument?
+  chatSessions  ChatSession[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum Sector {
+  TECH
+  AGRO
+  AGRO_ALIMENTAIRE
+  SERVICES
+  COMMERCE
+  AUTRE
+}
+
+enum ProjectStatus {
+  DRAFT
+  IN_PROGRESS
+  GENERATING
+  COMPLETED
+  ARCHIVED
+}
+
+model FormInput {
+  id          String     @id @default(cuid())
+  projectId   String
+  stepNumber  Int
+  questionKey String
+  answerValue String
+  answerType  AnswerType @default(TEXT)
+  createdAt   DateTime   @default(now())
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, questionKey])
+  @@index([projectId])
+}
+
+enum AnswerType {
+  TEXT
+  NUMBER
+  SELECT
+  MULTI_SELECT
+  FILE_URL
+  BOOLEAN
+}
+
+// ============================================
+// GENERATED DOCUMENTS
+// ============================================
+
+model GeneratedDocument {
+  id         String    @id @default(cuid())
+  projectId  String    @unique
+  type       DocType   @default(FULL)
+  status     GenStatus @default(PENDING)
+  version    Int       @default(1)
+  rawContent String?   // JSON string for Business Plan
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  // Relations
+  project  Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  canvases CanvasData[]
+  exports  Export[]
+
+  @@index([projectId])
+}
+
+enum DocType {
+  BMC_ONLY
+  LEAN_ONLY
+  BP_ONLY
+  FULL
+}
+
+enum GenStatus {
+  PENDING
+  GENERATING
+  COMPLETED
+  FAILED
+}
+
+model CanvasData {
+  id         String     @id @default(cuid())
+  docId      String
+  canvasType CanvasType
+  blocks     String     // JSON string
+  rawContent String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  // Relations
+  document GeneratedDocument @relation(fields: [docId], references: [id], onDelete: Cascade)
+
+  @@unique([docId, canvasType])
+  @@index([docId])
+}
+
+enum CanvasType {
+  BUSINESS_MODEL_CANVAS
+  LEAN_CANVAS
+}
+
+// ============================================
+// SUBSCRIPTIONS & PAYMENTS
+// ============================================
+
+model Subscription {
+  id                 String     @id @default(cuid())
+  userId             String     @unique
+  stripeCustomerId   String?    @unique
+  stripeSubId        String?    @unique
+  status             SubStatus  @default(INACTIVE)
+  plan               Plan       @default(FREE)
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  projectsUsed       Int        @default(0)
+  exportsUsed        Int        @default(0)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stripeSubId])
+}
+
+enum SubStatus {
+  ACTIVE
+  INACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+enum Plan {
+  FREE
+  BASIC
+  PRO
+}
+
+model PaymentHistory {
+  id             String        @id @default(cuid())
+  subscriptionId String
+  amount         Int // in cents
+  currency       String        @default("EUR")
+  provider       PaymentProvider
+  providerRef    String
+  status         PaymentStatus
+  createdAt      DateTime      @default(now())
+
+  @@index([subscriptionId])
+  @@index([providerRef])
+}
+
+enum PaymentProvider {
+  STRIPE
+  FLUTTERWAVE
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// ============================================
+// EXPORTS
+// ============================================
+
+model Export {
+  id           String      @id @default(cuid())
+  docId        String
+  userId       String
+  format       ExportFormat
+  fileUrl      String
+  fileSize     Int // bytes
+  downloadedAt DateTime?
+  createdAt    DateTime    @default(now())
+
+  // Relations
+  document GeneratedDocument @relation(fields: [docId], references: [id], onDelete: Cascade)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([docId])
+  @@index([userId])
+}
+
+enum ExportFormat {
+  PDF
+  PNG
+  DOCX
+  JSON
+}
+
+// ============================================
+// SUPPORT
+// ============================================
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String?
+  messages  String   // JSON array
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+}
+
+model Ticket {
+  id         String      @id @default(cuid())
+  userId     String
+  subject    String
+  status     TicketStatus @default(OPEN)
+  priority   Priority    @default(MEDIUM)
+  messages   String      // JSON array
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  resolvedAt DateTime?
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// ============================================
+// AUDIT LOGS
+// ============================================
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String
+  metadata   String?  // JSON
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+// ============================================
+// FORM TEMPLATES (Admin configurable)
+// ============================================
+
+model FormTemplate {
+  id          String   @id @default(cuid())
+  sector      Sector
+  name        String
+  description String?
+  questions   String   // JSON array of questions
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([sector])
+}
+
+// ============================================
+// TEMPLATES (Document templates)
+// ============================================
+
+model Template {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  sector      Sector?
+  type        String   // bmc, lean, bp
+  content     String   // JSON template content
+  metadata    String?  // Additional metadata as JSON
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([sector])
+  @@index([type])
+  @@index([isActive])
+}
+
+// ============================================
+// SHARED DOCUMENTS (Collaboration)
+// ============================================
+
+model SharedDocument {
+  id                  String    @id @default(cuid())
+  shareId             String    @unique
+  docId               String
+  expiresAt           DateTime?
+  isPasswordProtected Boolean   @default(false)
+  passwordHash        String?
+  allowDownload       Boolean   @default(true)
+  views               Int       @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([shareId])
+  @@index([docId])
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // info, success, warning, error
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+// ============================================
+// ANALYTICS
+// ============================================
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  eventType String
+  entity    String?
+  entityId  String?
+  metadata  String?  // JSON
+  createdAt DateTime @default(now())
+
+  @@index([eventType])
+  @@index([userId])
+  @@index([createdAt])
+}
