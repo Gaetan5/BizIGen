@@ -28,7 +28,13 @@ export async function GET() {
     });
 
     const totalDocs = projects.reduce((acc, p) => {
-      if (p.generatedDoc) acc += p.generatedDoc.canvases.length + 1;
+      if (p.generatedDoc) {
+        acc += p.generatedDoc.canvases.length;
+        // Compter le Business Plan uniquement s'il existe (rawContent non nul)
+        if ((p.generatedDoc as { rawContent?: string | null }).rawContent) {
+          acc += 1;
+        }
+      }
       return acc;
     }, 0);
 
@@ -56,14 +62,9 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    console.log('POST /api/projects - Session:', session ? `User: ${session.user?.email}` : 'No session');
-    
     if (!session?.user?.id) {
-      console.log('POST /api/projects - No session found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    console.log('POST /api/projects - Session user:', session.user.email);
 
     const userId = session.user.id;
     const body = await request.json();

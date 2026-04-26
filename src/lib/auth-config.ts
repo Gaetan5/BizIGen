@@ -5,6 +5,13 @@ import Google from 'next-auth/providers/google';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
+// Forcer NEXTAUTH_SECRET en production
+if (!process.env.NEXTAUTH_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error(
+    '[auth-config] NEXTAUTH_SECRET est manquant. Définissez cette variable d\'environnement avant de démarrer en production.'
+  );
+}
+
 // Extend Next.js types for custom session properties
 declare module 'next-auth' {
   interface Session {
@@ -17,7 +24,7 @@ declare module 'next-auth' {
       plan: string;
     };
   }
-  
+
   interface User {
     role?: string;
     plan?: string;
@@ -31,6 +38,8 @@ declare module 'next-auth/jwt' {
     plan?: string;
   }
 }
+
+const isProduction = process.env.NODE_ENV === 'production';
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -47,27 +56,27 @@ export const authOptions: NextAuthOptions = {
       name: `next-auth.session-token`,
       options: {
         httpOnly: true,
-        sameSite: 'none',
+        sameSite: isProduction ? 'none' : 'lax',
         path: '/',
-        secure: true,
+        secure: isProduction,
       },
     },
     callbackUrl: {
       name: `next-auth.callback-url`,
       options: {
         httpOnly: true,
-        sameSite: 'none',
+        sameSite: isProduction ? 'none' : 'lax',
         path: '/',
-        secure: true,
+        secure: isProduction,
       },
     },
     csrfToken: {
       name: `next-auth.csrf-token`,
       options: {
         httpOnly: true,
-        sameSite: 'none',
+        sameSite: isProduction ? 'none' : 'lax',
         path: '/',
-        secure: true,
+        secure: isProduction,
       },
     },
   },
@@ -121,17 +130,36 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
-      if (user) {
+    async jwt({ token, user, account, trigger, session }) {
+      // Connexion initiale avec Credentials
+      if (user && account?.provider === 'credentials') {
         token.id = user.id;
         token.role = user.role ?? 'USER';
         token.plan = user.plan ?? 'FREE';
       }
-      
+
+      // Connexion Google : récupérer l'id depuis la BDD (M3 : fix)
+      if (account?.provider === 'google' && token.email) {
+        try {
+          const dbUser = await db.user.findUnique({
+            where: { email: token.email },
+            include: { subscription: true },
+          });
+          if (dbUser) {
+            token.id = dbUser.id;
+            token.role = dbUser.role;
+            token.plan = dbUser.subscription?.plan ?? 'FREE';
+          }
+        } catch (error) {
+          console.error('JWT Google lookup error:', error);
+        }
+      }
+
+      // Mise à jour de session via trigger
       if (trigger === 'update' && session) {
         token = { ...token, ...session };
       }
-      
+
       return token;
     },
     async session({ session, token }) {
@@ -151,7 +179,7 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (!existingUser) {
-            const newUser = await db.user.create({
+            await db.user.create({
               data: {
                 email: user.email,
                 name: user.name ?? null,
@@ -165,25 +193,16 @@ export const authOptions: NextAuthOptions = {
                   },
                 },
               },
-              include: { subscription: true },
             });
-            
-            user.id = newUser.id;
-            user.role = newUser.role;
-            user.plan = newUser.subscription?.plan ?? 'FREE';
-          } else {
-            user.id = existingUser.id;
-            user.role = existingUser.role;
-            user.plan = existingUser.subscription?.plan ?? 'FREE';
           }
         } catch (error) {
           console.error('Google sign in error:', error);
           return false;
         }
       }
-      
+
       return true;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET ?? 'dev-secret-key-for-testing-only',
+  secret: process.env.NEXTAUTH_SECRET ?? 'dev-secret-key-for-local-only',
 };

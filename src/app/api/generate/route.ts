@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { db } from '@/lib/db';
+import { bmcSchema, leanCanvasSchema, businessPlanSchema } from '@/lib/validations';
 
 // AI SDK for generation
 import ZAI from 'z-ai-web-dev-sdk';
@@ -9,63 +10,6 @@ import ZAI from 'z-ai-web-dev-sdk';
 interface GenerateRequest {
   projectId: string;
   type: 'bmc' | 'lean' | 'bp' | 'all';
-}
-
-interface BusinessPlan {
-  executiveSummary: string;
-  companyOverview: {
-    mission: string;
-    vision: string;
-    values: string[];
-    legalStructure: string;
-    location: string;
-  };
-  marketAnalysis: {
-    industryOverview: string;
-    targetMarket: string;
-    marketSize: string;
-    trends: string[];
-  };
-  competitiveAnalysis: {
-    directCompetitors: string[];
-    indirectCompetitors: string[];
-    competitiveAdvantage: string;
-  };
-  swot: {
-    strengths: string[];
-    weaknesses: string[];
-    opportunities: string[];
-    threats: string[];
-  };
-  marketingStrategy: {
-    positioning: string;
-    channels: string[];
-    pricingStrategy: string;
-    salesApproach: string;
-  };
-  operationsPlan: {
-    keyActivities: string[];
-    keyResources: string[];
-    keyPartners: string[];
-    milestones: string[];
-  };
-  financialProjections: {
-    year1Revenue: string;
-    year2Revenue: string;
-    year3Revenue: string;
-    breakEvenMonth: number;
-    fundingRequired: string;
-    useOfFunds: string[];
-  };
-  team: {
-    founders: string[];
-    keyHires: string[];
-    advisors: string[];
-  };
-  riskAnalysis: {
-    risks: string[];
-    mitigations: string[];
-  };
 }
 
 // Prompt templates
@@ -187,48 +131,6 @@ GÉNÈRE UN LEAN CANVAS COMPLET AU FORMAT JSON SUIVANT:
 `;
 }
 
-async function generateBMC(formData: Record<string, string>, sector: string, country: string) {
-  const zai = await ZAI.create();
-  
-  const response = await zai.chat.completions.create({
-    messages: [
-      { role: 'system', content: BMC_SYSTEM_PROMPT },
-      { role: 'user', content: getBMCUserPrompt(formData, sector, country) }
-    ],
-    model: 'gpt-4o-mini',
-  });
-
-  // Parse JSON from response
-  const content = response.choices?.[0]?.message?.content || '';
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Invalid JSON response from AI');
-  }
-  
-  return JSON.parse(jsonMatch[0]);
-}
-
-async function generateLeanCanvas(formData: Record<string, string>, sector: string) {
-  const zai = await ZAI.create();
-  
-  const response = await zai.chat.completions.create({
-    messages: [
-      { role: 'system', content: LEAN_SYSTEM_PROMPT },
-      { role: 'user', content: getLeanUserPrompt(formData, sector) }
-    ],
-    model: 'gpt-4o-mini',
-  });
-
-  // Parse JSON from response
-  const content = response.choices?.[0]?.message?.content || '';
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Invalid JSON response from AI');
-  }
-  
-  return JSON.parse(jsonMatch[0]);
-}
-
 function getBPUserPrompt(formData: Record<string, string>, sector: string, country: string): string {
   return `
 INFORMATIONS PROJET:
@@ -313,25 +215,38 @@ GÉNÈRE UN BUSINESS PLAN COMPLET AU FORMAT JSON SUIVANT:
 `;
 }
 
-async function generateBusinessPlan(formData: Record<string, string>, sector: string, country: string): Promise<BusinessPlan> {
+async function callAIWithRetry(systemPrompt: string, userPrompt: string, schema: any, retries = 2) {
   const zai = await ZAI.create();
-  
-  const response = await zai.chat.completions.create({
-    messages: [
-      { role: 'system', content: BP_SYSTEM_PROMPT },
-      { role: 'user', content: getBPUserPrompt(formData, sector, country) }
-    ],
-    model: 'gpt-4o-mini',
-  });
+  let lastError = null;
 
-  // Parse JSON from response
-  const content = response.choices?.[0]?.message?.content || '';
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Invalid JSON response from AI');
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const response = await zai.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        model: 'gpt-4o-mini',
+        temperature: 0.7,
+      });
+
+      const content = response.choices?.[0]?.message?.content || '';
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      
+      if (!jsonMatch) {
+        throw new Error('Pas de JSON trouvé dans la réponse de l\'IA');
+      }
+
+      const parsedData = JSON.parse(jsonMatch[0]);
+      return schema.parse(parsedData);
+    } catch (error) {
+      console.error(`Tentative ${i + 1} échouée:`, error);
+      lastError = error;
+      if (i < retries) await new Promise(resolve => setTimeout(resolve, 1000));
+    }
   }
-  
-  return JSON.parse(jsonMatch[0]);
+
+  throw lastError;
 }
 
 export async function POST(request: NextRequest) {
@@ -339,13 +254,13 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
     const body: GenerateRequest = await request.json();
     const { projectId, type } = body;
 
-    // Get project and form inputs
+    // 1. Vérifier le projet
     const project = await db.project.findFirst({
       where: { 
         id: projectId,
@@ -360,19 +275,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Projet non trouvé' }, { status: 404 });
     }
 
-    // Convert form inputs to object
+    // 2. Vérifier les limites du plan
+    const subscription = await db.subscription.findUnique({
+      where: { userId: session.user.id },
+    });
+
+    const userPlan = subscription?.plan || 'FREE';
+
+    if ((type === 'bp' || type === 'all') && userPlan === 'FREE') {
+      return NextResponse.json(
+        { error: 'Le Business Plan nécessite un plan BASIC ou PRO.' },
+        { status: 403 }
+      );
+    }
+
+    // 3. Préparer les données
     const formData: Record<string, string> = {};
     project.formInputs.forEach(input => {
       formData[input.questionKey] = input.answerValue;
     });
 
-    // Update project status
-    await db.project.update({
-      where: { id: projectId },
-      data: { status: 'GENERATING' },
-    });
-
-    // Create or get generated document
+    // 4. Initialiser le document de génération
     let generatedDoc = await db.generatedDocument.findUnique({
       where: { projectId },
     });
@@ -392,84 +315,61 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Generate based on type
-    const results: { bmc?: unknown; lean?: unknown } = {};
+    await db.project.update({
+      where: { id: projectId },
+      data: { status: 'GENERATING' },
+    });
+
+    const results: any = {};
+
+    // 5. Exécution des générations
+    const generationTasks = [];
 
     if (type === 'bmc' || type === 'all') {
-      try {
-        const bmcBlocks = await generateBMC(formData, project.sector, project.country);
-        results.bmc = bmcBlocks;
-
-        // Save BMC canvas
-        await db.canvasData.upsert({
-          where: {
-            docId_canvasType: {
-              docId: generatedDoc.id,
-              canvasType: 'BUSINESS_MODEL_CANVAS',
-            },
-          },
-          update: {
-            blocks: JSON.stringify(bmcBlocks),
-          },
-          create: {
-            docId: generatedDoc.id,
-            canvasType: 'BUSINESS_MODEL_CANVAS',
-            blocks: JSON.stringify(bmcBlocks),
-          },
-        });
-      } catch (error) {
-        console.error('BMC generation error:', error);
-      }
+      generationTasks.push(
+        callAIWithRetry(BMC_SYSTEM_PROMPT, getBMCUserPrompt(formData, project.sector, project.country), bmcSchema)
+          .then(async (data) => {
+            results.bmc = data;
+            await db.canvasData.upsert({
+              where: { docId_canvasType: { docId: generatedDoc.id, canvasType: 'BUSINESS_MODEL_CANVAS' } },
+              update: { blocks: JSON.stringify(data) },
+              create: { docId: generatedDoc.id, canvasType: 'BUSINESS_MODEL_CANVAS', blocks: JSON.stringify(data) },
+            });
+          })
+      );
     }
 
     if (type === 'lean' || type === 'all') {
-      try {
-        const leanBlocks = await generateLeanCanvas(formData, project.sector);
-        results.lean = leanBlocks;
-
-        // Save Lean Canvas
-        await db.canvasData.upsert({
-          where: {
-            docId_canvasType: {
-              docId: generatedDoc.id,
-              canvasType: 'LEAN_CANVAS',
-            },
-          },
-          update: {
-            blocks: JSON.stringify(leanBlocks),
-          },
-          create: {
-            docId: generatedDoc.id,
-            canvasType: 'LEAN_CANVAS',
-            blocks: JSON.stringify(leanBlocks),
-          },
-        });
-      } catch (error) {
-        console.error('Lean Canvas generation error:', error);
-      }
+      generationTasks.push(
+        callAIWithRetry(LEAN_SYSTEM_PROMPT, getLeanUserPrompt(formData, project.sector), leanCanvasSchema)
+          .then(async (data) => {
+            results.lean = data;
+            await db.canvasData.upsert({
+              where: { docId_canvasType: { docId: generatedDoc.id, canvasType: 'LEAN_CANVAS' } },
+              update: { blocks: JSON.stringify(data) },
+              create: { docId: generatedDoc.id, canvasType: 'LEAN_CANVAS', blocks: JSON.stringify(data) },
+            });
+          })
+      );
     }
 
-    // Generate Business Plan
     if (type === 'bp' || type === 'all') {
-      try {
-        const businessPlan = await generateBusinessPlan(formData, project.sector, project.country);
-        
-        // Save Business Plan as raw content on the generated document
-        await db.generatedDocument.update({
-          where: { id: generatedDoc.id },
-          data: {
-            rawContent: JSON.stringify(businessPlan),
-          },
-        });
-        
-        // Also return it in results
-        (results as Record<string, unknown>).bp = businessPlan;
-      } catch (error) {
-        console.error('Business Plan generation error:', error);
-      }
+      generationTasks.push(
+        callAIWithRetry(BP_SYSTEM_PROMPT, getBPUserPrompt(formData, project.sector, project.country), businessPlanSchema)
+          .then(async (data) => {
+            results.bp = data;
+            await db.generatedDocument.update({
+              where: { id: generatedDoc.id },
+              data: { rawContent: JSON.stringify(data) },
+            });
+          })
+      );
     }
 
-    // Update statuses
+    // Attendre que toutes les tâches se terminent
+    await Promise.allSettled(generationTasks);
+
+    // 6. Finalisation
     await db.generatedDocument.update({
       where: { id: generatedDoc.id },
       data: { 
@@ -492,10 +392,11 @@ export async function POST(request: NextRequest) {
       status: 'COMPLETED',
       results,
     });
-  } catch (error) {
-    console.error('Generation error:', error);
+
+  } catch (error: any) {
+    console.error('Erreur de génération critique:', error);
     return NextResponse.json(
-      { error: 'Erreur lors de la génération' },
+      { error: error.message || 'Une erreur est survenue lors de la génération' },
       { status: 500 }
     );
   }
