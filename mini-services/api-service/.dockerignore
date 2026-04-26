@@ -1,0 +1,74 @@
+# ============================================
+# BizGen AI API - Docker Ignore
+# ============================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose*.yml
+
+# Environment
+.env
+.env.*
+
+# Logs
+logs/
+*.log
+
+# Database (local only)
+*.db
+*.sqlite
+
+# Documentation
+*.md
+
+# Tests (not needed in production image)
+tests/
+
+# Cache
+.mypy_cache/
+.ruff_cache/

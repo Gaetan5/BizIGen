@@ -1,0 +1,41 @@
+# ============================================
+# BizGen AI - Docker Compose Override
+# Development environment overrides
+# Usage: docker-compose up (automatically loads this file)
+# ============================================
+
+version: "3.9"
+
+services:
+  api:
+    build:
+      target: production  # Use production Dockerfile
+    volumes:
+      # Mount source code for development
+      - ./mini-services/api-service/app:/app/app:ro
+      - ./mini-services/api-service/tests:/app/tests:ro
+    environment:
+      - DEBUG=true
+    command: uvicorn app.main:app --host 0.0.0.0 --port 3001 --reload
+
+  # Development database admin (Adminer)
+  adminer:
+    image: adminer:latest
+    container_name: bizgen-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - bizgen-network
+
+  # Redis Commander (Redis GUI)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: bizgen-redis-commander
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    networks:
+      - bizgen-network

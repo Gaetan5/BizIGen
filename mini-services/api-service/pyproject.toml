@@ -1,0 +1,28 @@
+[project]
+name = "bizgen-api"
+version = "1.0.0"
+description = "BizGen AI - FastAPI Backend Service for Business Document Generation"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+    "python-multipart>=0.0.18",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "sqlalchemy>=2.0.0",
+    "aiosqlite>=0.20.0",
+    "httpx>=0.28.0",
+    "openai>=1.57.0",
+    "reportlab>=4.2.0",
+    "python-docx>=1.1.0",
+    "jinja2>=3.1.0",
+    "pillow>=11.0.0",
+    "stripe>=11.3.0",
+    "python-dotenv>=1.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
