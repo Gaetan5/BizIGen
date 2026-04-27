@@ -2,6 +2,7 @@
 import type { NextAuthOptions } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
+import GitHub from 'next-auth/providers/github';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
@@ -85,6 +86,10 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID ?? '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
     }),
+    GitHub({
+      clientId: process.env.GITHUB_CLIENT_ID ?? '',
+      clientSecret: process.env.GITHUB_CLIENT_SECRET ?? '',
+    }),
     Credentials({
       name: 'credentials',
       credentials: {
@@ -138,8 +143,8 @@ export const authOptions: NextAuthOptions = {
         token.plan = user.plan ?? 'FREE';
       }
 
-      // Connexion Google : récupérer l'id depuis la BDD (M3 : fix)
-      if (account?.provider === 'google' && token.email) {
+      // Connexion Google/GitHub : récupérer l'id depuis la BDD
+      if ((account?.provider === 'google' || account?.provider === 'github') && token.email) {
         try {
           const dbUser = await db.user.findUnique({
             where: { email: token.email },
@@ -151,7 +156,7 @@ export const authOptions: NextAuthOptions = {
             token.plan = dbUser.subscription?.plan ?? 'FREE';
           }
         } catch (error) {
-          console.error('JWT Google lookup error:', error);
+          console.error('JWT Provider lookup error:', error);
         }
       }
 
@@ -171,7 +176,7 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async signIn({ user, account }) {
-      if (account?.provider === 'google' && user.email) {
+      if ((account?.provider === 'google' || account?.provider === 'github') && user.email) {
         try {
           const existingUser = await db.user.findUnique({
             where: { email: user.email },
@@ -196,7 +201,7 @@ export const authOptions: NextAuthOptions = {
             });
           }
         } catch (error) {
-          console.error('Google sign in error:', error);
+          console.error('Provider sign in error:', error);
           return false;
         }
       }

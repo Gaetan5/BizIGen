@@ -311,8 +311,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(pythonResult);
 
   } catch (error: any) {
-
-  } catch (error: any) {
     console.error('Erreur de génération critique:', error);
     return NextResponse.json(
       { error: error.message || 'Une erreur est survenue lors de la génération' },
