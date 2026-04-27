@@ -11,6 +11,14 @@ export const metadata: Metadata = {
   description: 'Générez votre Business Model Canvas, Lean Canvas et Business Plan complet en 20 minutes avec l\'IA. Outil SaaS pour entrepreneurs africains.',
   keywords: ['business model canvas', 'lean canvas', 'business plan', 'IA', 'startup', 'Afrique', 'Cameroun'],
   authors: [{ name: 'BizGen AI' }],
+  manifest: '/manifest.json',
+  themeColor: '#000000',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'BizGen AI',
+  },
   openGraph: {
     title: 'BizGen AI - Business Model Canvas & Business Plan Generator',
     description: 'Générez votre Business Model Canvas, Lean Canvas et Business Plan complet en 20 minutes avec l\'IA.',

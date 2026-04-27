@@ -44,6 +44,14 @@ services:
     volumes:
       - api-logs:/app/logs
       - api-exports:/app/exports
+      - ./mini-services/api-service/knowledge:/app/knowledge:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          memory: 512M
     depends_on:
       postgres:
         condition: service_healthy
@@ -53,10 +61,36 @@ services:
       - bizgen-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
-      interval: 30s
-      timeout: 10s
+      interval: 15s
+      timeout: 5s
       retries: 3
       start_period: 10s
+
+  # ============================================
+  # Frontend Service - Next.js
+  # ============================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bizgen-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-bizgen}:${POSTGRES_PASSWORD:-bizgen123}@postgres:5432/${POSTGRES_DB:-bizgen}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
+      - PYTHON_BACKEND_URL=http://api:3001
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-bizgen-internal-api-key-safe-for-dev}
+    depends_on:
+      api:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - bizgen-network
 
   # ============================================
   # PostgreSQL Database
@@ -66,7 +100,7 @@ services:
     container_name: bizgen-postgres
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "5435:5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-bizgen}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-bizgen123}
@@ -91,7 +125,7 @@ services:
     container_name: bizgen-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6380:6379"
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis-data:/data
@@ -168,6 +202,19 @@ services:
     profiles:
       - monitoring
 
+  # ============================================
+  # Vector Database (Future Phase 2: AI Memory)
+  # ============================================
+  # chromadb:
+  #   image: chromadb/chroma:latest
+  #   container_name: bizgen-chroma
+  #   volumes:
+  #     - chroma-data:/chroma/data
+  #   networks:
+  #     - bizgen-network
+  #   profiles:
+  #     - advanced
+
 # ============================================
 # Networks
 # ============================================
@@ -192,3 +239,5 @@ volumes:
     name: bizgen-prometheus-data
   grafana-data:
     name: bizgen-grafana-data
+  chroma-data:
+    name: bizgen-chroma-data
