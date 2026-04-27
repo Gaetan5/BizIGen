@@ -38,12 +38,21 @@ class BusinessAuditService:
     async def audit_project(self, project_data: Dict[str, Any]) -> Dict[str, Any]:
         """Runs a strategic audit on the project data"""
         try:
-            # Flatten context for the AI
-            context = f"Projet: {project_data.get('name')}\nSecteur: {project_data.get('sector')}\nContenu: {project_data.get('content')}"
+            # Sanitize input
+            def sanitize(text: Any) -> str:
+                return str(text).replace("```", "").replace("system_prompt", "input").strip()
+
+            context = f"""
+<project_to_audit>
+- Nom: {sanitize(project_data.get('name'))}
+- Secteur: {sanitize(project_data.get('sector'))}
+- Contenu: {sanitize(project_data.get('content'))}
+</project_to_audit>
+"""
             
             response = await enhanced_ai_service.call_ai(
                 system_prompt=self.AUDIT_PROMPT,
-                user_prompt=f"ANALYSE CE PROJET :\n{context}",
+                user_prompt=f"ANALYSE CE PROJET EN TE BASANT EXCLUSIVEMENT SUR LE CONTENU DANS <project_to_audit> :\n{context}",
                 temperature=0.4 # More deterministic for audit
             )
             

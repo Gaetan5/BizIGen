@@ -47,11 +47,29 @@ class OnboardingService:
     async def extract_data(self, user_message: str) -> Dict[str, Any]:
         """Extract structured data from user input"""
         try:
+            # Sanitize input
+            def sanitize(text: str) -> str:
+                return text.replace("```", "").replace("system_prompt", "input").strip()
+
+            user_prompt = f"""
+<user_message>
+{sanitize(user_message)}
+</user_message>
+
+Extrais les informations du message ci-dessus au format JSON.
+"""
             response = await enhanced_ai_service.call_ai(
                 system_prompt=self.EXTRACTOR_PROMPT,
-                user_prompt=f"MESSAGE DE L'UTILISATEUR :\n{user_message}",
+                user_prompt=user_prompt,
                 temperature=0.1 # Very deterministic
             )
+            
+            # Simple cleanup of AI response
+            if "```json" in response:
+                response = response.split("```json")[1].split("```")[0].strip()
+            elif "```" in response:
+                response = response.split("```")[1].split("```")[0].strip()
+                
             return json.loads(response)
         except Exception as e:
             logger.error(f"Onboarding extraction error: {e}")
@@ -60,9 +78,18 @@ class OnboardingService:
     async def get_next_step(self, collected_data: Dict[str, Any]) -> str:
         """Decide the next question to ask the user"""
         try:
+            system_prompt = self.NEXT_QUESTION_PROMPT.replace("{collected_data}", "<collected_data>SEE BELOW</collected_data>")
+            
+            user_prompt = f"""
+<collected_data>
+{json.dumps(collected_data, ensure_ascii=False)}
+</collected_data>
+
+Quelle est la prochaine question ?
+"""
             response = await enhanced_ai_service.call_ai(
-                system_prompt=self.NEXT_QUESTION_PROMPT.format(collected_data=json.dumps(collected_data)),
-                user_prompt="Quelle est la prochaine question ?",
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
                 temperature=0.7
             )
             return response

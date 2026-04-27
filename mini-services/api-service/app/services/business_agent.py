@@ -38,12 +38,25 @@ class BusinessAgentService:
     async def get_advice(self, user_query: str, project_context: Optional[Dict[str, Any]] = None) -> str:
         """Get strategic advice from the business agent"""
         try:
-            # Enhanced context construction
+            # Sanitize and isolate input
+            def sanitize(text: Any) -> str:
+                return str(text).replace("```", "").replace("system_prompt", "input").strip()
+
             context_str = ""
             if project_context:
-                context_str = f"\nCONTEXTE DU PROJET ACTUEL :\n{project_context}"
+                context_str = f"""
+<current_project_context>
+{sanitize(project_context)}
+</current_project_context>
+"""
             
-            user_prompt = f"{context_str}\n\nQUESTION DE L'ENTREPRENEUR :\n{user_query}"
+            user_input = f"""
+<entrepreneur_query>
+{sanitize(user_query)}
+</entrepreneur_query>
+"""
+            
+            user_prompt = f"{context_str}\n{user_input}\n\nRéponds à la question contenue dans <entrepreneur_query> en tenant compte du contexte éventuel dans <current_project_context>."
             
             response = await enhanced_ai_service.call_ai(
                 system_prompt=self.SYSTEM_PROMPT,

@@ -4,7 +4,7 @@ Finds real market players and analyzes the competitive landscape.
 """
 import logging
 from typing import List, Dict, Any
-from app.services.enhanced_ai_service import enhanced_ai_service
+
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +33,21 @@ class CompetitorDiscoveryService:
 
     async def discover_competitors(self, sector: str, country: str, description: str) -> Dict[str, Any]:
         """Discover and analyze competitors for a given context"""
+        from app.services.enhanced_ai_service import enhanced_ai_service
         try:
-            user_prompt = f"SECTEUR : {sector}\nPAYS : {country}\nDESCRIPTION DU PROJET : {description}"
+            # Sanitize and isolate input
+            def sanitize(text: Any) -> str:
+                return str(text).replace("```", "").replace("system_prompt", "input").strip()
+
+            user_prompt = f"""
+<market_context>
+- Secteur: {sanitize(sector)}
+- Pays: {sanitize(country)}
+- Description: {sanitize(description)}
+</market_context>
+
+Identifie les concurrents en te basant sur le contexte dans <market_context>.
+"""
             
             response = await enhanced_ai_service.call_ai(
                 system_prompt=self.DISCOVERY_PROMPT,
