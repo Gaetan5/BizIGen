@@ -36,6 +36,11 @@ from app.schemas.ai_schemas import (
     ValidatedAIResponse,
     validate_ai_response,
 )
+from app.services.sector_expertise import sector_expertise
+from app.services.knowledge_service import knowledge_service
+from app.services.financial_engine import financial_engine
+from app.services.competitor_discovery import competitor_discovery
+from app.services.knowledge_service import knowledge_service
 
 logger = logging.getLogger(__name__)
 
@@ -177,8 +182,18 @@ class AICache:
             self._redis = None
     
     def _hash_key(self, data: Dict[str, Any]) -> str:
-        """Create hash key from data"""
-        json_str = json.dumps(data, sort_keys=True, ensure_ascii=False)
+        """Create normalized hash key from data for semantic-like hit rate"""
+        # 1. Deep copy and clean data
+        clean_data = {}
+        for k, v in data.items():
+            if isinstance(v, str):
+                # Normalize strings (lowercase, strip, remove extra spaces)
+                clean_data[k] = " ".join(v.lower().split())
+            else:
+                clean_data[k] = v
+                
+        # 2. Serialize sorted keys for consistency
+        json_str = json.dumps(clean_data, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(json_str.encode()).hexdigest()
     
     async def aget(self, key: str) -> Optional[Any]:
@@ -629,6 +644,10 @@ Le JSON doit avoir exactement cette structure:
   "revenue_streams": [{"source": "...", "model": "...", "pricing": "..."}]
 }"""
         
+        # Inject Sector Expertise
+        expertise = sector_expertise.get_expertise(sector)
+        system_prompt += f"\n{expertise}"
+        
         user_prompt = f"""
 INFORMATIONS PROJET:
 - Nom: {form_data.get('company_name', 'Projet')}
@@ -647,12 +666,19 @@ INFORMATIONS PROJET:
 GÉNÈRE UN BUSINESS MODEL CANVAS COMPLET AU FORMAT JSON DEMANDÉ.
 """
         
-        return await self._generate_with_validation(
+        # Validate with Pydantic
+        validated = await self._generate_with_validation(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response_type=AIResponseType.BMC,
             cache_key=cache_key,
         )
+        
+        # FIX FINANCES (Expert Step)
+        if validated.is_valid:
+            validated.content = financial_engine.validate_and_fix_bmc_finances(validated.content)
+            
+        return validated
     
     async def generate_lean_canvas(
         self,
@@ -680,6 +706,10 @@ RÈGLES:
 6. Unfair Advantage → Ce qui ne peut pas être copié facilement
 
 Tu DOIS répondre UNIQUEMENT avec un JSON valide au format demandé."""
+        
+        # Inject Sector Expertise
+        expertise = sector_expertise.get_expertise(sector)
+        system_prompt += f"\n{expertise}"
         
         user_prompt = f"""
 INFORMATIONS PROJET:
@@ -727,6 +757,21 @@ RÈGLES STRICTES:
 5. Inclure des métriques pertinentes pour le secteur
 
 Tu DOIS répondre UNIQUEMENT avec un JSON valide, sans texte avant ou après."""
+        
+        # Inject Sector Expertise, Local Knowledge & Real Competitors
+        expertise = sector_expertise.get_expertise(sector)
+        local_context = knowledge_service.get_context_for_sector(sector)
+        
+        # Expert Step: Discover real competitors
+        competitors = await competitor_discovery.discover_competitors(sector, country, form_data.get('description', ''))
+        
+        system_prompt += f"\n{expertise}"
+        if local_context:
+            system_prompt += f"\n\nDONNÉES DE RÉFÉRENCE MARCHÉ (UTILISE CES FAITS RÉELS) :\n{local_context}"
+        
+        if competitors and "error" not in competitors:
+            import json
+            system_prompt += f"\n\nANALYSE CONCURRENTIELLE RÉELLE (À INTÉGRER AU PLAN) :\n{json.dumps(competitors, ensure_ascii=False)}"
         
         user_prompt = f"""
 INFORMATIONS PROJET:
