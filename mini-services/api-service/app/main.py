@@ -16,7 +16,7 @@ from datetime import datetime
 
 from app.config import settings
 from app.database import init_db
-from app.routers import auth, projects, generate, export, chat, subscriptions, admin, password_reset, webhooks
+from app.routers import auth, projects, generate, export, chat, subscriptions, admin, password_reset, webhooks, onboarding, share
 
 # Setup structured logging
 from app.services.monitoring_service import setup_logging, logger, metrics, health_checker
@@ -169,32 +169,18 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="""
-    BizGen AI Backend API - Génération de Business Plans avec IA
+    BizGen AI Backend API - L'excellence au service de l'entrepreneuriat.
     
-    ## Fonctionnalités
-    
-    * **Authentification** - Inscription, connexion, JWT tokens
-    * **Projets** - CRUD pour les projets business
-    * **Génération IA** - BMC, Lean Canvas, Business Plan
-    * **Exports** - PDF, DOCX, PNG
-    * **Chat IA** - Assistant intelligent pour les entrepreneurs
-    * **Subscriptions** - Plans Free, Basic, Pro
-    
-    ## Plans et Limites
-    
-    | Plan | Projets/mois | Exports | Fonctionnalités |
-    |------|-------------|---------|-----------------|
-    | Free | 1 | 3 PNG | BMC, Lean Canvas |
-    | Basic | 5 | 20 PDF | + Business Plan |
-    | Pro | Illimité | Illimité | + DOCX, Templates |
-    
-    ## Rate Limiting
-    
-    - API général: 100 requêtes/minute
-    - Auth endpoints: 10 requêtes/minute
+    ## Fonctionnalités Avancées
+    * **IA Sectorielle** - Finance, Trading, Fintech, Agri.
+    * **Audit Stratégique** - Viability Score et mentoring.
+    * **Competitor Discovery** - Intelligence marché en temps réel.
+    * **Onboarding** - Création de projet conversationnelle.
+    * **Collaboration** - Partage sécurisé via liens publics.
+    * **API Keys** - Intégrations externes (bg_live_...).
     """,
     lifespan=lifespan,
-    docs_url="/docs" if settings.DEBUG else None,  # Disable docs in production
+    docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redoc" if settings.DEBUG else None,
     openapi_url="/openapi.json" if settings.DEBUG else None
 )
@@ -355,6 +341,8 @@ app.include_router(chat.router)
 app.include_router(subscriptions.router)
 app.include_router(password_reset.router)
 app.include_router(admin.router)
+app.include_router(onboarding.router)
+app.include_router(share.router)
 app.include_router(webhooks.router)
 
 
