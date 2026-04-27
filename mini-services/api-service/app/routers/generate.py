@@ -26,6 +26,7 @@ from app.services.enhanced_ai_service import (
     AIValidationError,
     AITimeoutError,
 )
+from app.services.business_audit import business_audit
 from app.schemas.ai_schemas import AIResponseType
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,7 @@ class GenerateResponse(BaseModel):
     validation_errors: Optional[list] = None
     model_used: Optional[str] = None
     generation_time_ms: Optional[float] = None
+    cache_hit: bool = False
 
 
 class StreamProgress(BaseModel):
@@ -246,6 +248,15 @@ async def generate_documents(
                     total_time_ms += validated.generation_time_ms or 0
                     gen_doc.rawContent = json.dumps(validated.content, ensure_ascii=False)
                     logger.info(f"Business Plan generated successfully (model: {validated.model_used})")
+                    
+                    # RUN STRATEGIC AUDIT (Expert Feature)
+                    logger.info(f"Running strategic audit for project {project.id}")
+                    audit_result = await business_audit.audit_project({
+                        "name": project.name,
+                        "sector": project.sector,
+                        "content": validated.content
+                    })
+                    results["strategic_audit"] = audit_result
                 else:
                     errors.append(f"BP validation failed: {validated.validation_errors}")
                     
@@ -289,6 +300,7 @@ async def generate_documents(
             error="; ".join(errors) if errors else None,
             model_used=last_model_used,
             generation_time_ms=total_time_ms,
+            cache_hit=all(r.get("cached", False) for r in results.values() if isinstance(r, dict))
         )
         
     except Exception as e:
