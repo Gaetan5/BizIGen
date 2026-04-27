@@ -61,10 +61,12 @@ export function useExportPDF() {
     const yOffset = title ? 35 : 10;
     pdf.addImage(imgData, 'PNG', 10, yOffset, imgWidth - 20, imgHeight);
 
-    // Add footer
+    // Add footer with legal disclaimer
     pdf.setFontSize(8);
     pdf.setTextColor(150, 150, 150);
-    pdf.text(`Généré par BizGen AI - ${new Date().toLocaleDateString('fr-FR')}`, 14, pageHeight - 10);
+    pdf.text(`Généré par BizGen AI - ${new Date().toLocaleDateString('fr-FR')}`, 14, pageHeight - 12);
+    pdf.setFontSize(6);
+    pdf.text("Disclaimer : Ce document est généré par une IA à titre indicatif. Il ne constitue pas un conseil financier, juridique ou fiscal professionnel. BizGen AI décline toute responsabilité quant à l'utilisation des données fournies.", 14, pageHeight - 8);
 
     // Save
     pdf.save(`${fileName}.pdf`);
@@ -360,13 +362,17 @@ export function useExportPDF() {
       }
     }
 
-    // Add page numbers
+    // Add page numbers and legal disclaimer
     const totalPages = pdf.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       pdf.setPage(i);
       pdf.setFontSize(8);
       pdf.setTextColor(150, 150, 150);
-      pdf.text(`Page ${i} / ${totalPages}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+      pdf.text(`Page ${i} / ${totalPages}`, pageWidth - margin, pageHeight - 12, { align: 'right' });
+      
+      pdf.setFontSize(6);
+      pdf.text("Disclaimer : Ce document est généré par une IA à titre indicatif. Il ne constitue pas un conseil financier, juridique ou fiscal professionnel. BizGen AI décline toute responsabilité quant à l'utilisation des données fournies.", margin, pageHeight - 8);
+      pdf.text(`BizGen AI - ${projectName}`, margin, pageHeight - 12);
     }
 
     // Save
