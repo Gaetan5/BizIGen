@@ -93,16 +93,17 @@ async def chat_with_ai(
             }
     
     try:
-        result = await ai_service.chat(
-            message=request.message,
-            context=request.context,
-            project_data=project_data
+        from app.services.business_agent import business_agent
+        
+        response_text = await business_agent.get_advice(
+            user_query=request.message,
+            project_context=project_data
         )
         
         return ChatResponse(
             success=True,
-            response=result["response"],
-            suggestions=result.get("suggestions", [])
+            response=response_text,
+            suggestions=[] # Suggestions will be handled by context later
         )
         
     except Exception as e:

@@ -2,7 +2,7 @@
 BizGen AI - Authentication Router
 Handles user registration, login, and JWT tokens
 """
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -77,14 +77,31 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: AsyncSession = Depends(get_db)
 ) -> User:
+    # 1. Check for Internal API Key (Next.js service-to-service)
+    internal_key = request.headers.get("X-Internal-API-Key")
+    if internal_key and internal_key == settings.INTERNAL_API_KEY:
+        # For internal calls, we expect userId in headers
+        user_id = request.headers.get("X-User-Id")
+        if user_id:
+            result = await db.execute(select(User).where(User.id == user_id))
+            user = result.scalar_one_or_none()
+            if user:
+                return user
+
+    # 2. Regular JWT Authentication
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    if not credentials:
+        raise credentials_exception
+        
     try:
         payload = jwt.decode(
             credentials.credentials, 

@@ -54,6 +54,7 @@ class Settings(BaseSettings):
     
     # Security
     SECRET_KEY: str = "dev-secret-key-change-in-production-min-32-chars"
+    INTERNAL_API_KEY: str = "bizgen-internal-api-key-safe-for-dev"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     
