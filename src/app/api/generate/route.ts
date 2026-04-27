@@ -215,38 +215,23 @@ GÉNÈRE UN BUSINESS PLAN COMPLET AU FORMAT JSON SUIVANT:
 `;
 }
 
-async function callAIWithRetry(systemPrompt: string, userPrompt: string, schema: any, retries = 2) {
-  const zai = await ZAI.create();
-  let lastError = null;
+async function callBackendPython(projectId: string, type: string, userId: string) {
+  const response = await fetch('http://localhost:3001/generate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Internal-API-Key': 'bizgen-internal-api-key-safe-for-dev',
+      'X-User-Id': userId
+    },
+    body: JSON.stringify({ projectId, type })
+  });
 
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const response = await zai.chat.completions.create({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        model: 'gpt-4o-mini',
-        temperature: 0.7,
-      });
-
-      const content = response.choices?.[0]?.message?.content || '';
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      
-      if (!jsonMatch) {
-        throw new Error('Pas de JSON trouvé dans la réponse de l\'IA');
-      }
-
-      const parsedData = JSON.parse(jsonMatch[0]);
-      return schema.parse(parsedData);
-    } catch (error) {
-      console.error(`Tentative ${i + 1} échouée:`, error);
-      lastError = error;
-      if (i < retries) await new Promise(resolve => setTimeout(resolve, 1000));
-    }
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.detail || 'Erreur backend Python');
   }
 
-  throw lastError;
+  return response.json();
 }
 
 export async function POST(request: NextRequest) {
@@ -320,78 +305,12 @@ export async function POST(request: NextRequest) {
       data: { status: 'GENERATING' },
     });
 
-    const results: any = {};
+    // 5. Exécution de la génération via le backend Python (Expert)
+    const pythonResult = await callBackendPython(projectId, type, session.user.id);
 
-    // 5. Exécution des générations
-    const generationTasks = [];
+    return NextResponse.json(pythonResult);
 
-    if (type === 'bmc' || type === 'all') {
-      generationTasks.push(
-        callAIWithRetry(BMC_SYSTEM_PROMPT, getBMCUserPrompt(formData, project.sector, project.country), bmcSchema)
-          .then(async (data) => {
-            results.bmc = data;
-            await db.canvasData.upsert({
-              where: { docId_canvasType: { docId: generatedDoc.id, canvasType: 'BUSINESS_MODEL_CANVAS' } },
-              update: { blocks: JSON.stringify(data) },
-              create: { docId: generatedDoc.id, canvasType: 'BUSINESS_MODEL_CANVAS', blocks: JSON.stringify(data) },
-            });
-          })
-      );
-    }
-
-    if (type === 'lean' || type === 'all') {
-      generationTasks.push(
-        callAIWithRetry(LEAN_SYSTEM_PROMPT, getLeanUserPrompt(formData, project.sector), leanCanvasSchema)
-          .then(async (data) => {
-            results.lean = data;
-            await db.canvasData.upsert({
-              where: { docId_canvasType: { docId: generatedDoc.id, canvasType: 'LEAN_CANVAS' } },
-              update: { blocks: JSON.stringify(data) },
-              create: { docId: generatedDoc.id, canvasType: 'LEAN_CANVAS', blocks: JSON.stringify(data) },
-            });
-          })
-      );
-    }
-
-    if (type === 'bp' || type === 'all') {
-      generationTasks.push(
-        callAIWithRetry(BP_SYSTEM_PROMPT, getBPUserPrompt(formData, project.sector, project.country), businessPlanSchema)
-          .then(async (data) => {
-            results.bp = data;
-            await db.generatedDocument.update({
-              where: { id: generatedDoc.id },
-              data: { rawContent: JSON.stringify(data) },
-            });
-          })
-      );
-    }
-
-    // Attendre que toutes les tâches se terminent
-    await Promise.allSettled(generationTasks);
-
-    // 6. Finalisation
-    await db.generatedDocument.update({
-      where: { id: generatedDoc.id },
-      data: { 
-        status: 'COMPLETED',
-        version: { increment: 1 },
-      },
-    });
-
-    await db.project.update({
-      where: { id: projectId },
-      data: { 
-        status: 'COMPLETED',
-        completedAt: new Date(),
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      documentId: generatedDoc.id,
-      status: 'COMPLETED',
-      results,
-    });
+  } catch (error: any) {
 
   } catch (error: any) {
     console.error('Erreur de génération critique:', error);

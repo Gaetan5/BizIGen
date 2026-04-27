@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     const shareId = randomBytes(16).toString('hex');
     
     // Hash password if provided
-    let hashedPassword = null;
+    let hashedPassword: string | null = null;
     if (isPasswordProtected && password) {
       const { hash } = await import('bcryptjs');
       hashedPassword = await hash(password, 10);

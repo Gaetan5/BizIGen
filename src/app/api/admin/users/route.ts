@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { db } from '@/lib/db';
 import { hash } from 'bcryptjs';
+import { Role } from '@prisma/client';
 
 // Admin middleware
 async function verifyAdmin() {
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const search = searchParams.get('search');
-    const role = searchParams.get('role');
+    const role = searchParams.get('role') as Role | null;
 
     const skip = (page - 1) * limit;
 

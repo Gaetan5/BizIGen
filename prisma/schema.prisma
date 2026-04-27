@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -126,9 +126,10 @@ model GeneratedDocument {
   updatedAt  DateTime  @updatedAt
 
   // Relations
-  project  Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  canvases CanvasData[]
-  exports  Export[]
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  canvases     CanvasData[]
+  exports      Export[]
+  sharedDocs   SharedDocument[]
 
   @@index([projectId])
 }
@@ -177,6 +178,7 @@ model Subscription {
   userId             String     @unique
   stripeCustomerId   String?    @unique
   stripeSubId        String?    @unique
+  flutterwaveCustomerId String? @unique
   status             SubStatus  @default(INACTIVE)
   plan               Plan       @default(FREE)
   currentPeriodStart DateTime?
@@ -387,6 +389,9 @@ model SharedDocument {
   views               Int       @default(0)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+
+  // Relations
+  document GeneratedDocument @relation(fields: [docId], references: [id], onDelete: Cascade)
 
   @@index([shareId])
   @@index([docId])

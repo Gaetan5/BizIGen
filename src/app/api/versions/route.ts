@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { db } from '@/lib/db';
 import { hash } from 'bcryptjs';
+import { CanvasType } from '@prisma/client';
 
 // GET /api/versions/[projectId] - Get all versions for a project
 export async function GET(request: NextRequest) {
@@ -100,11 +101,11 @@ export async function POST(request: NextRequest) {
         canvases: {
           create: [
             ...(bmc ? [{
-              canvasType: 'BUSINESS_MODEL_CANVAS',
+              canvasType: 'BUSINESS_MODEL_CANVAS' as CanvasType,
               blocks: JSON.stringify(bmc),
             }] : []),
             ...(lean ? [{
-              canvasType: 'LEAN_CANVAS',
+              canvasType: 'LEAN_CANVAS' as CanvasType,
               blocks: JSON.stringify(lean),
             }] : []),
           ],

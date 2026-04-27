@@ -73,3 +73,43 @@ export const chatApi = {
     }
   },
 };
+
+export const paymentApi = {
+  async createStripeCheckout(plan: string, successUrl: string, cancelUrl: string) {
+    try {
+      const response = await fetch('/api/subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan, provider: 'stripe', successUrl, cancelUrl }),
+      });
+      const data = await response.json();
+      return { success: response.ok, data, error: data.error };
+    } catch (error) {
+      return { success: false, error: 'Payment error' };
+    }
+  },
+  
+  async createFlutterwavePayment(plan: string, redirectUrl: string, phone?: string) {
+    try {
+      const response = await fetch('/api/subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan, provider: 'flutterwave', redirectUrl, phone }),
+      });
+      const data = await response.json();
+      return { success: response.ok, data, error: data.error };
+    } catch (error) {
+      return { success: false, error: 'Payment error' };
+    }
+  },
+  
+  async verifyFlutterwavePayment(transactionId: string) {
+    try {
+      const response = await fetch(`/api/subscriptions?transactionId=${transactionId}`);
+      const data = await response.json();
+      return { success: response.ok, data, error: data.error };
+    } catch (error) {
+      return { success: false, error: 'Payment verification error' };
+    }
+  }
+};

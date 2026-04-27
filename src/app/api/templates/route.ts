@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { db } from '@/lib/db';
+import { Sector } from '@prisma/client';
 
 // GET /api/templates - List all templates
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const sector = searchParams.get('sector');
+    const sector = searchParams.get('sector') as Sector | null;
     const type = searchParams.get('type'); // bmc, lean, bp
 
     const templates = await db.template.findMany({
