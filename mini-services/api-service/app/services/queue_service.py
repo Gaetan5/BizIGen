@@ -263,8 +263,8 @@ queue_service = QueueService()
 # ============================================
 
 async def handle_generation_job(payload: Dict[str, Any], update_progress: Callable) -> Dict[str, Any]:
-    """Handle AI generation jobs"""
-    from app.services.ai_service import ai_service
+    """Handle AI generation jobs using Enhanced AI Service"""
+    from app.services.enhanced_ai_service import enhanced_ai_service
     
     project_id = payload.get("project_id")
     generation_type = payload.get("type", "all")
@@ -278,17 +278,17 @@ async def handle_generation_job(payload: Dict[str, Any], update_progress: Callab
     
     if generation_type in ["bmc", "all"]:
         update_progress(int((current_step / total_steps) * 100))
-        results["bmc"] = await ai_service.generate_bmc(form_data, sector, country)
+        results["bmc"] = await enhanced_ai_service.generate_bmc(form_data, sector, country)
         current_step += 1
     
     if generation_type in ["lean", "all"]:
         update_progress(int((current_step / total_steps) * 100))
-        results["lean"] = await ai_service.generate_lean_canvas(form_data, sector)
+        results["lean"] = await enhanced_ai_service.generate_lean_canvas(form_data, sector)
         current_step += 1
     
     if generation_type in ["bp", "all"]:
         update_progress(int((current_step / total_steps) * 100))
-        results["bp"] = await ai_service.generate_business_plan(form_data, sector, country)
+        results["bp"] = await enhanced_ai_service.generate_business_plan(form_data, sector, country)
         current_step += 1
     
     update_progress(100)

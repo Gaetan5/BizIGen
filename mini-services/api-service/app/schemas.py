@@ -291,6 +291,29 @@ class ChatResponse(BaseModel):
     suggestions: List[str] = []
 
 
+# ============================================
+# Integration Schemas
+# ============================================
+
+class IntegrationService(str, Enum):
+    GITHUB = "github"
+    GOOGLE_DRIVE = "google_drive"
+    ONEDRIVE = "onedrive"
+
+class IntegrationPushRequest(BaseModel):
+    project_id: str
+    service: IntegrationService
+    filename: str
+    content: Optional[str] = None  # Si vide, on récupère le contenu du projet
+    target_path: Optional[str] = "BizGen/documentation"
+    token: str  # Token OAuth de l'utilisateur
+
+class IntegrationResponse(BaseModel):
+    success: bool
+    service: str
+    url: Optional[str] = None
+    message: str = ""
+
 # Update forward references
 UserWithSubscription.model_rebuild()
 ProjectWithDocResponse.model_rebuild()

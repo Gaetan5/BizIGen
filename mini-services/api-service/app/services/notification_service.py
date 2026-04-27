@@ -54,10 +54,14 @@ class NotificationService:
             """
             msg.attach(MIMEText(body, 'plain'))
 
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_pass)
-                server.send_message(msg)
+            def _send_email_sync():
+                with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+                    server.starttls()
+                    server.login(self.smtp_user, self.smtp_pass)
+                    server.send_message(msg)
+            
+            import asyncio
+            await asyncio.to_thread(_send_email_sync)
             
             logger.info(f"Email sent successfully to {to_email}")
             return True

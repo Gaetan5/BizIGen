@@ -3,6 +3,7 @@ BizGen AI - FastAPI Configuration
 Supports both Docker (PostgreSQL) and local (SQLite) environments
 """
 from pydantic_settings import BaseSettings
+from pydantic import Field
 from typing import Optional
 from functools import lru_cache
 from pathlib import Path
@@ -53,8 +54,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = ""  # Will be set dynamically
     
     # Security
-    SECRET_KEY: str = "dev-secret-key-change-in-production-min-32-chars"
-    INTERNAL_API_KEY: str = "bizgen-internal-api-key-safe-for-dev"
+    SECRET_KEY: str = Field(..., min_length=32)
+    INTERNAL_API_KEY: str = Field(..., min_length=16)
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     
@@ -101,6 +102,13 @@ class Settings(BaseSettings):
     ENABLE_WEBHOOKS: bool = True
     ENABLE_SUBSCRIPTIONS: bool = True
     ENABLE_CHAT: bool = True
+    
+    # Integrations
+    GITHUB_TOKEN: Optional[str] = None
+    GOOGLE_CLIENT_ID: Optional[str] = None
+    GOOGLE_CLIENT_SECRET: Optional[str] = None
+    MICROSOFT_CLIENT_ID: Optional[str] = None
+    MICROSOFT_CLIENT_SECRET: Optional[str] = None
     
     class Config:
         env_file = ".env"

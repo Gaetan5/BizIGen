@@ -16,7 +16,7 @@ from datetime import datetime
 
 from app.config import settings
 from app.database import init_db
-from app.routers import auth, projects, generate, export, chat, subscriptions, admin, password_reset, webhooks, onboarding, share
+from app.routers import auth, projects, generate, export, chat, subscriptions, admin, password_reset, webhooks, onboarding, share, integrations
 
 # Setup structured logging
 from app.services.monitoring_service import setup_logging, logger, metrics, health_checker
@@ -34,34 +34,63 @@ init_sentry()
 # Rate Limiting (Simple in-memory implementation)
 # ============================================
 class RateLimiter:
-    """Simple in-memory rate limiter"""
+    """Redis-backed rate limiter with in-memory fallback"""
     
     def __init__(self, requests: int = 100, window_seconds: int = 60):
         self.requests = requests
         self.window_seconds = window_seconds
         self._storage: dict[str, list[float]] = defaultdict(list)
+        self._redis = None
+        self._redis_available = False
     
-    def is_allowed(self, key: str) -> tuple[bool, int]:
+    async def _init_redis(self):
+        if self._redis is not None:
+            return
+        if not settings.REDIS_URL:
+            return
+        try:
+            import redis.asyncio as redis
+            self._redis = redis.from_url(settings.REDIS_URL, decode_responses=True)
+            await self._redis.ping()
+            self._redis_available = True
+            logger.info("Redis rate limiter initialized")
+        except Exception as e:
+            logger.warning(f"Redis rate limiter failed, using in-memory: {e}")
+            self._redis_available = False
+
+    async def is_allowed(self, key: str) -> tuple[bool, int]:
         """Check if request is allowed. Returns (is_allowed, remaining_requests)"""
+        if settings.REDIS_URL and not self._redis_available:
+            await self._init_redis()
+
+        if self._redis_available and self._redis:
+            try:
+                # Use Redis cell or simple window
+                redis_key = f"rate_limit:{key}"
+                current = await self._redis.get(redis_key)
+                if current and int(current) >= self.requests:
+                    return False, 0
+                
+                pipe = self._redis.pipeline()
+                await pipe.incr(redis_key)
+                await pipe.expire(redis_key, self.window_seconds)
+                results = await pipe.execute()
+                new_count = int(results[0])
+                return True, self.requests - new_count
+            except Exception as e:
+                logger.warning(f"Redis rate limit error: {e}")
+
+        # Fallback to in-memory
         now = time.time()
         window_start = now - self.window_seconds
-        
-        # Clean old requests
         self._storage[key] = [t for t in self._storage[key] if t > window_start]
-        
-        # Check limit
         if len(self._storage[key]) >= self.requests:
             return False, 0
-        
-        # Add request
         self._storage[key].append(now)
         return True, self.requests - len(self._storage[key])
     
-    def get_reset_time(self, key: str) -> float:
-        """Get time until rate limit resets"""
-        if not self._storage[key]:
-            return 0
-        return self._storage[key][0] + self.window_seconds - time.time()
+    def get_reset_time(self, key: str) -> int:
+        return self.window_seconds # Simplifié pour le reset
 
 
 # Global rate limiter instance
@@ -92,22 +121,23 @@ async def rate_limit_middleware(request: Request, call_next: Callable) -> Respon
         limiter = rate_limiter
         key = f"api:{client_ip}"
     
-    allowed, remaining = limiter.is_allowed(key)
+    allowed, remaining = await limiter.is_allowed(key)
     
     if not allowed:
         logger.warning(f"Rate limit exceeded for {client_ip} on {path}")
+        reset_time = limiter.get_reset_time(key)
         return JSONResponse(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             content={
                 "success": False,
                 "error": "Too many requests. Please try again later.",
-                "retry_after": int(limiter.get_reset_time(key))
+                "retry_after": reset_time
             },
             headers={
-                "Retry-After": str(int(limiter.get_reset_time(key))),
+                "Retry-After": str(reset_time),
                 "X-RateLimit-Limit": str(limiter.requests),
                 "X-RateLimit-Remaining": "0",
-                "X-RateLimit-Reset": str(int(limiter.get_reset_time(key)))
+                "X-RateLimit-Reset": str(reset_time)
             }
         )
     
@@ -182,7 +212,29 @@ app = FastAPI(
     lifespan=lifespan,
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redoc" if settings.DEBUG else None,
-    openapi_url="/openapi.json" if settings.DEBUG else None
+    openapi_url="/openapi.json" if settings.DEBUG else None,
+    openapi_tags=[
+        {
+            "name": "AI Generation",
+            "description": "Le cœur de BizGen. Génération de BMC, Lean Canvas et Business Plans complets.",
+        },
+        {
+            "name": "Strategic Audit",
+            "description": "Audit de viabilité, détection de risques et mentoring stratégique par IA.",
+        },
+        {
+            "name": "Collaboration",
+            "description": "Gestion des partages sécurisés et des liens publics pour partenaires.",
+        },
+        {
+            "name": "Onboarding",
+            "description": "Système conversationnel intelligent pour définir les projets entrepreneurs.",
+        },
+        {
+            "name": "Integrations",
+            "description": "Gestion des API Keys personnelles pour la connectivité externe.",
+        }
+    ]
 )
 
 
@@ -250,7 +302,7 @@ async def add_security_headers(request: Request, call_next: Callable) -> Respons
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; img-src 'self' data: fastly.jsdelivr.net"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     
     # Request ID for debugging
@@ -278,14 +330,20 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    """Handle unexpected exceptions"""
+    """Handle unexpected exceptions - Hide details in production"""
     logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    
+    # Hide sensitive details in production
+    error_message = "Internal server error"
+    if settings.DEBUG:
+        error_message = str(exc)
+        
     return JSONResponse(
         status_code=500,
         content={
             "success": False,
-            "error": "Internal server error",
-            "detail": str(exc) if settings.DEBUG else "An unexpected error occurred"
+            "error": error_message,
+            "detail": str(exc) if settings.DEBUG else "An unexpected error occurred. Please contact support."
         }
     )
 
@@ -344,6 +402,7 @@ app.include_router(admin.router)
 app.include_router(onboarding.router)
 app.include_router(share.router)
 app.include_router(webhooks.router)
+app.include_router(integrations.router)
 
 
 # ============================================

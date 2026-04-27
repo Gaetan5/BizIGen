@@ -16,8 +16,14 @@ class KnowledgeService:
     Reads local reference documents to provide factual context to the AI.
     """
     
-    def __init__(self, knowledge_dir: str = "/app/knowledge"):
-        self.knowledge_dir = Path(knowledge_dir)
+    def __init__(self, knowledge_dir: Optional[str] = None):
+        if knowledge_dir:
+            self.knowledge_dir = Path(knowledge_dir)
+        else:
+            # Default to a 'knowledge' directory in the project root
+            # __file__ is /app/services/knowledge_service.py
+            self.knowledge_dir = Path(__file__).parent.parent.parent / "knowledge"
+        
         self._ensure_dir()
 
     def _ensure_dir(self):
