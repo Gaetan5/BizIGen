@@ -74,17 +74,14 @@ async def create_project(
     subscription = result.scalar_one_or_none()
     user_plan = subscription.plan if subscription else "FREE"
     
-    # Check project limits
+    # Check current project count
     result = await db.execute(
         select(func.count(Project.id)).where(Project.userId == current_user.id)
     )
     current_count = result.scalar() or 0
     
-    # Plan limits
-    limits = {"FREE": 1, "BASIC": 5, "PRO": -1}
-    max_projects = limits.get(user_plan, 1)
-    
-    if max_projects != -1 and current_count >= max_projects:
+    from app.services.payment_service import payment_service
+    if not payment_service.can_create_project(user_plan, current_count):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Project limit reached. Please upgrade your plan."
@@ -115,41 +112,38 @@ async def list_projects(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """List all projects for current user with stats"""
+    """List all projects for current user with optimized relation loading"""
+    from sqlalchemy.orm import selectinload
+    from app.models.models import Export
     
+    # Load projects with docs, canvases and exports in a few optimized queries
     result = await db.execute(
         select(Project)
         .where(Project.userId == current_user.id)
+        .options(
+            selectinload(Project.generatedDoc).selectinload(GeneratedDocument.canvases),
+            selectinload(Project.generatedDoc).selectinload(GeneratedDocument.exports)
+        )
         .order_by(Project.updatedAt.desc())
     )
     projects = result.scalars().all()
     
-    # Get stats
     total_docs = 0
     exports_used = 0
     
+    project_list = []
     for p in projects:
-        result = await db.execute(
-            select(GeneratedDocument).where(GeneratedDocument.projectId == p.id)
-        )
-        gen_doc = result.scalar_one_or_none()
+        # Relationship data is now pre-loaded
+        gen_doc = p.generatedDoc
         if gen_doc:
-            # Count canvases
-            result = await db.execute(
-                select(func.count(CanvasData.id)).where(CanvasData.docId == gen_doc.id)
-            )
-            canvas_count = result.scalar() or 0
+            canvas_count = len(gen_doc.canvases)
             total_docs += canvas_count + (1 if gen_doc.rawContent else 0)
-            
-            # Count exports
-            from app.models.models import Export
-            result = await db.execute(
-                select(func.count(Export.id)).where(Export.docId == gen_doc.id)
-            )
-            exports_used += result.scalar() or 0
+            exports_used += len(gen_doc.exports)
+        
+        project_list.append(ProjectResponse.model_validate(p))
     
     return {
-        "projects": [ProjectResponse.model_validate(p) for p in projects],
+        "projects": project_list,
         "totalDocs": total_docs,
         "exportsUsed": exports_used
     }

@@ -109,6 +109,28 @@ async def generate_documents(
             detail="No form data found. Please complete the form first."
         )
     
+    # CHECK SUBSCRIPTION LIMITS
+    from app.models.models import Subscription
+    from app.services.payment_service import payment_service
+    
+    result = await db.execute(
+        select(Subscription).where(Subscription.userId == current_user.id)
+    )
+    subscription = result.scalar_one_or_none()
+    
+    # If project is already completed, we don't increment projectsUsed
+    is_new_generation = project.status == "DRAFT"
+    
+    if is_new_generation:
+        user_plan = subscription.plan if subscription else "FREE"
+        current_projects = subscription.projectsUsed if subscription else 0
+        
+        if not payment_service.can_create_project(user_plan, current_projects):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Project limit reached for your plan. Please upgrade."
+            )
+    
     # Convert to dict
     form_data = {inp.questionKey: inp.answerValue for inp in form_inputs}
     

@@ -12,12 +12,9 @@ import hashlib
 from datetime import datetime
 
 from app.database import get_db
-from app.models.models import User
+from app.models.models import User, ApiKey
 from app.routers.auth import get_current_user
-
-# Note: In a real architecture, we would create a new table 'ApiKey'. 
-# For this implementation, I will define the logic and use a mock structure 
-# until the next DB migration.
+from typing import Dict
 
 router = APIRouter(prefix="/settings/api-keys", tags=["Integrations"])
 
@@ -41,12 +38,20 @@ async def create_api_key(
     # 1. Generate secure random key
     raw_key = f"bg_{secrets.token_urlsafe(32)}"
     key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+    prefix = raw_key[:7] + "..." # bg_abcd...
     
-    # 2. Store hash in DB (logic placeholder)
-    # new_key = ApiKey(userId=current_user.id, name=request.name, keyHash=key_hash)
-    # db.add(new_key)
+    # 2. Store hash in DB
+    new_key = ApiKey(
+        userId=current_user.id, 
+        name=request.name, 
+        keyHash=key_hash,
+        keyPrefix=prefix
+    )
+    db.add(new_key)
+    await db.flush()
     
     return {
+        "id": new_key.id,
         "name": request.name,
         "api_key": raw_key,
         "warning": "Conservez cette clé précieusement, elle ne sera plus affichée."
@@ -58,9 +63,21 @@ async def list_api_keys(
     db: AsyncSession = Depends(get_db)
 ):
     """List all active API keys for the user"""
-    # result = await db.execute(select(ApiKey).where(ApiKey.userId == current_user.id))
-    # keys = result.scalars().all()
-    return [] # Placeholder
+    result = await db.execute(
+        select(ApiKey).where(ApiKey.userId == current_user.id).order_by(ApiKey.createdAt.desc())
+    )
+    keys = result.scalars().all()
+    
+    return [
+        ApiKeyResponse(
+            id=k.id,
+            name=k.name,
+            key_prefix=k.keyPrefix,
+            createdAt=k.createdAt,
+            lastUsedAt=k.lastUsedAt
+        )
+        for k in keys
+    ]
 
 @router.delete("/{key_id}")
 async def revoke_api_key(
@@ -69,5 +86,15 @@ async def revoke_api_key(
     db: AsyncSession = Depends(get_db)
 ):
     """Revoke and delete an API key"""
-    # await db.execute(delete(ApiKey).where(ApiKey.id == key_id, ApiKey.userId == current_user.id))
-    return {"success": True}
+    result = await db.execute(
+        select(ApiKey).where(ApiKey.id == key_id, ApiKey.userId == current_user.id)
+    )
+    key = result.scalar_one_or_none()
+    
+    if not key:
+        raise HTTPException(status_code=404, detail="API Key not found")
+        
+    await db.delete(key)
+    await db.flush()
+    
+    return {"success": True, "message": "Clé API révoquée avec succès"}

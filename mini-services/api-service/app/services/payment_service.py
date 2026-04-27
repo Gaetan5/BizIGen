@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import httpx
 
 from app.config import settings
+from app.services.monitoring_service import logger
 
 
 class PaymentService:
@@ -70,7 +71,7 @@ class PaymentService:
             )
             return customer.id
         except stripe.error.StripeError as e:
-            print(f"Stripe error creating customer: {e}")
+            logger.error(f"Stripe error creating customer: {e}", extra_data={"email": email})
             return None
     
     async def create_stripe_subscription(
@@ -107,7 +108,7 @@ class PaymentService:
                 "checkout_url": session.url
             }
         except stripe.error.StripeError as e:
-            print(f"Stripe error creating subscription: {e}")
+            logger.error(f"Stripe error creating subscription: {e}", extra_data={"customer_id": customer_id, "plan": plan})
             return None
     
     async def cancel_stripe_subscription(self, subscription_id: str) -> bool:
@@ -119,7 +120,7 @@ class PaymentService:
             stripe.Subscription.delete(subscription_id)
             return True
         except stripe.error.StripeError as e:
-            print(f"Stripe error canceling subscription: {e}")
+            logger.error(f"Stripe error canceling subscription: {e}", extra_data={"subscription_id": subscription_id})
             return False
     
     def verify_stripe_webhook(self, payload: bytes, sig_header: str) -> Optional[Dict[str, Any]]:
@@ -193,11 +194,11 @@ class PaymentService:
                         "tx_ref": data["data"]["tx_ref"]
                     }
                 else:
-                    print(f"Flutterwave error: {response.text}")
+                    logger.error(f"Flutterwave error: {response.text}", extra_data={"status_code": response.status_code, "plan": plan})
                     return None
                     
             except Exception as e:
-                print(f"Flutterwave error: {e}")
+                logger.error(f"Flutterwave exception: {e}", extra_data={"plan": plan})
                 return None
     
     async def verify_flutterwave_payment(self, transaction_id: str) -> Optional[Dict[str, Any]]:
@@ -226,7 +227,7 @@ class PaymentService:
                 return None
                 
             except Exception as e:
-                print(f"Flutterwave verification error: {e}")
+                logger.error(f"Flutterwave verification error: {e}", extra_data={"transaction_id": transaction_id})
                 return None
     
     # ============================================

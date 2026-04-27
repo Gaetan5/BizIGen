@@ -147,9 +147,10 @@ async def list_users(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    """List all users with pagination"""
+    """List all users with pagination and optimized loading"""
+    from sqlalchemy.orm import selectinload
     
-    query = select(User)
+    query = select(User).options(selectinload(User.subscription))
     
     if search:
         query = query.where(
@@ -166,31 +167,30 @@ async def list_users(
     result = await db.execute(query)
     users = result.scalars().all()
     
-    # Get additional data for each user
-    user_list = []
-    for user in users:
-        # Get subscription
-        result = await db.execute(
-            select(Subscription).where(Subscription.userId == user.id)
+    # Get project counts for all listed users in one query
+    user_ids = [u.id for u in users]
+    project_counts = {}
+    if user_ids:
+        counts_result = await db.execute(
+            select(Project.userId, func.count(Project.id))
+            .where(Project.userId.in_(user_ids))
+            .group_by(Project.userId)
         )
-        sub = result.scalar_one_or_none()
-        
-        # Get project count
-        result = await db.execute(
-            select(func.count(Project.id)).where(Project.userId == user.id)
-        )
-        project_count = result.scalar() or 0
-        
-        user_list.append(UserAdmin(
+        project_counts = dict(counts_result.fetchall())
+    
+    user_list = [
+        UserAdmin(
             id=user.id,
             email=user.email,
             name=user.name,
             role=user.role,
-            plan=sub.plan if sub else "FREE",
-            projectsCount=project_count,
+            plan=user.subscription.plan if user.subscription else "FREE",
+            projectsCount=project_counts.get(user.id, 0),
             createdAt=user.createdAt.isoformat() if user.createdAt else None,
             lastActive=user.updatedAt.isoformat() if user.updatedAt else None
-        ))
+        )
+        for user in users
+    ]
     
     return user_list
 

@@ -33,6 +33,7 @@ class User(Base):
     projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
     subscription = relationship("Subscription", back_populates="user", uselist=False, cascade="all, delete-orphan")
     exports = relationship("Export", back_populates="user", cascade="all, delete-orphan")
+    apiKeys = relationship("ApiKey", back_populates="user", cascade="all, delete-orphan")
     chatSessions = relationship("ChatSession", back_populates="user", cascade="all, delete-orphan")
     tickets = relationship("Ticket", back_populates="user", cascade="all, delete-orphan")
     auditLogs = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
@@ -142,6 +143,21 @@ class Export(Base):
     # Relationships
     document = relationship("GeneratedDocument", back_populates="exports")
     user = relationship("User", back_populates="exports")
+
+
+class ApiKey(Base):
+    __tablename__ = "ApiKey"
+    
+    id = Column(String, primary_key=True, default=generate_uuid)
+    userId = Column(String, ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String, nullable=False)
+    keyHash = Column(String, unique=True, nullable=False)
+    keyPrefix = Column(String, nullable=False)  # bg_...
+    createdAt = Column(DateTime, server_default=func.now())
+    lastUsedAt = Column(DateTime, nullable=True)
+    
+    # Relationships
+    user = relationship("User", back_populates="apiKeys")
 
 
 class ChatSession(Base):

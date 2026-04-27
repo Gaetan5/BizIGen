@@ -81,7 +81,30 @@ async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: AsyncSession = Depends(get_db)
 ) -> User:
-    # 1. Check for Internal API Key (Next.js service-to-service)
+    # 1. Check for External API Key (Third-party integrations)
+    api_key = request.headers.get("X-API-Key")
+    if api_key and api_key.startswith("bg_"):
+        import hashlib
+        from app.models.models import ApiKey
+        
+        key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+        result = await db.execute(
+            select(ApiKey).where(ApiKey.keyHash == key_hash)
+        )
+        key_record = result.scalar_one_or_none()
+        
+        if key_record:
+            # Update last used timestamp
+            key_record.lastUsedAt = datetime.utcnow()
+            await db.flush()
+            
+            # Find associated user
+            result = await db.execute(select(User).where(User.id == key_record.userId))
+            user = result.scalar_one_or_none()
+            if user:
+                return user
+
+    # 2. Check for Internal API Key (Next.js service-to-service)
     internal_key = request.headers.get("X-Internal-API-Key")
     if internal_key and internal_key == settings.INTERNAL_API_KEY:
         # For internal calls, we expect userId in headers
