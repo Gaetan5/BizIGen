@@ -3,8 +3,6 @@
 # Production-ready multi-service orchestration
 # ============================================
 
-version: "3.9"
-
 services:
   # ============================================
   # API Service - FastAPI Backend
@@ -17,7 +15,7 @@ services:
     container_name: bizgen-api
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "3008:3001"
     environment:
       - APP_NAME=BizGen AI API
       - API_PORT=3001
@@ -40,6 +38,7 @@ services:
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-bizgen-internal-api-key-safe-for-dev-32chars}
       - EMAIL_FROM=${EMAIL_FROM:-}
     volumes:
       - api-logs:/app/logs
@@ -76,11 +75,11 @@ services:
     container_name: bizgen-frontend
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3010:3000"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://${POSTGRES_USER:-bizgen}:${POSTGRES_PASSWORD:-bizgen123}@postgres:5432/${POSTGRES_DB:-bizgen}
-      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3010}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
       - PYTHON_BACKEND_URL=http://api:3001
       - INTERNAL_API_KEY=${INTERNAL_API_KEY:-bizgen-internal-api-key-safe-for-dev}

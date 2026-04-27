@@ -4,8 +4,6 @@
 # Usage: docker-compose up (automatically loads this file)
 # ============================================
 
-version: "3.9"
-
 services:
   api:
     build:
