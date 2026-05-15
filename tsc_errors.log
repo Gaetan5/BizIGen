@@ -1,0 +1,60 @@
+mini-services/api-service/index.ts(12,27): error TS2339: Property 'dir' does not exist on type 'ImportMeta'.
+mini-services/api-service/index.ts(15,1): error TS2867: Cannot find name 'Bun'. Do you need to install type definitions for Bun? Try `npm i --save-dev @types/bun`.
+mini-services/api-service/index.ts(28,20): error TS2339: Property 'dir' does not exist on type 'ImportMeta'.
+src/app/(dashboard)/subscription/checkout/page.tsx(24,10): error TS2305: Module '"@/lib/fastapi-client"' has no exported member 'paymentApi'.
+src/app/(dashboard)/subscription/success/page.tsx(11,10): error TS2305: Module '"@/lib/fastapi-client"' has no exported member 'paymentApi'.
+src/app/api/admin/users/route.ts(46,9): error TS2322: Type '{ role?: string | undefined; OR?: ({ email: { contains: string; }; name?: undefined; } | { name: { contains: string; }; email?: undefined; })[] | undefined; }' is not assignable to type 'UserWhereInput'.
+  Types of property 'role' are incompatible.
+    Type 'string | undefined' is not assignable to type 'Role | EnumRoleFilter<"User"> | undefined'.
+      Type 'string' is not assignable to type 'Role | EnumRoleFilter<"User"> | undefined'.
+src/app/api/admin/users/route.ts(59,23): error TS2322: Type '{ role?: string | undefined; OR?: ({ email: { contains: string; }; name?: undefined; } | { name: { contains: string; }; email?: undefined; })[] | undefined; }' is not assignable to type 'UserWhereInput'.
+  Types of property 'role' are incompatible.
+    Type 'string | undefined' is not assignable to type 'Role | EnumRoleFilter<"User"> | undefined'.
+      Type 'string' is not assignable to type 'Role | EnumRoleFilter<"User"> | undefined'.
+src/app/api/admin/users/route.ts(71,25): error TS2339: Property 'subscription' does not exist on type '{ name: string | null; id: string; email: string; avatarUrl: string | null; locale: string; role: Role; passwordHash: string | null; createdAt: Date; updatedAt: Date; }'.
+src/app/api/admin/users/route.ts(72,25): error TS2339: Property '_count' does not exist on type '{ name: string | null; id: string; email: string; avatarUrl: string | null; locale: string; role: Role; passwordHash: string | null; createdAt: Date; updatedAt: Date; }'.
+src/app/api/generate/route.ts(244,7): error TS2322: Type 'unknown' is not assignable to type 'null'.
+src/app/api/generate/route.ts(330,9): error TS2345: Argument of type 'Promise<void>' is not assignable to parameter of type 'never'.
+src/app/api/generate/route.ts(344,9): error TS2345: Argument of type 'Promise<void>' is not assignable to parameter of type 'never'.
+src/app/api/generate/route.ts(358,9): error TS2345: Argument of type 'Promise<void>' is not assignable to parameter of type 'never'.
+src/app/api/share/route.ts(19,7): error TS2322: Type '{ document: { include: { project: true; canvases: true; }; }; }' is not assignable to type 'never'.
+src/app/api/share/route.ts(42,42): error TS2339: Property 'project' does not exist on type 'never'.
+src/app/api/share/route.ts(54,41): error TS2339: Property 'project' does not exist on type 'never'.
+src/app/api/share/route.ts(55,36): error TS2339: Property 'project' does not exist on type 'never'.
+src/app/api/share/route.ts(56,37): error TS2339: Property 'project' does not exist on type 'never'.
+src/app/api/share/route.ts(57,38): error TS2339: Property 'canvases' does not exist on type 'never'.
+src/app/api/share/route.ts(61,42): error TS2339: Property 'rawContent' does not exist on type 'never'.
+src/app/api/share/route.ts(61,85): error TS2339: Property 'rawContent' does not exist on type 'never'.
+src/app/api/share/route.ts(115,7): error TS2322: Type 'string' is not assignable to type 'null'.
+src/app/api/share/route.ts(171,7): error TS2322: Type '{ document: { include: { project: true; canvases: true; }; }; }' is not assignable to type 'never'.
+src/app/api/share/route.ts(201,41): error TS2339: Property 'project' does not exist on type 'never'.
+src/app/api/share/route.ts(202,36): error TS2339: Property 'project' does not exist on type 'never'.
+src/app/api/share/route.ts(203,37): error TS2339: Property 'project' does not exist on type 'never'.
+src/app/api/share/route.ts(204,38): error TS2339: Property 'canvases' does not exist on type 'never'.
+src/app/api/share/route.ts(208,42): error TS2339: Property 'rawContent' does not exist on type 'never'.
+src/app/api/share/route.ts(208,85): error TS2339: Property 'rawContent' does not exist on type 'never'.
+src/app/api/share/route.ts(243,7): error TS2322: Type '{ document: { include: { project: true; }; }; }' is not assignable to type 'never'.
+src/app/api/share/route.ts(250,42): error TS2339: Property 'project' does not exist on type 'never'.
+src/app/api/templates/route.ts(14,7): error TS2322: Type '{ type?: string | undefined; sector?: string | undefined; isActive: true; }' is not assignable to type 'TemplateWhereInput'.
+  Types of property 'sector' are incompatible.
+    Type 'string | undefined' is not assignable to type 'Sector | EnumSectorNullableFilter<"Template"> | null | undefined'.
+      Type 'string' is not assignable to type 'Sector | EnumSectorNullableFilter<"Template"> | null | undefined'.
+src/app/api/versions/route.ts(101,11): error TS2322: Type '{ canvasType: string; blocks: string; }[]' is not assignable to type '(Without<CanvasDataCreateWithoutDocumentInput, CanvasDataUncheckedCreateWithoutDocumentInput> & CanvasDataUncheckedCreateWithoutDocumentInput) | (Without<...> & CanvasDataCreateWithoutDocumentInput) | CanvasDataCreateWithoutDocumentInput[] | CanvasDataUncheckedCreateWithoutDocumentInput[] | undefined'.
+  Type '{ canvasType: string; blocks: string; }[]' is not assignable to type 'CanvasDataCreateWithoutDocumentInput[]'.
+    Type '{ canvasType: string; blocks: string; }' is not assignable to type 'CanvasDataCreateWithoutDocumentInput'.
+      Types of property 'canvasType' are incompatible.
+        Type 'string' is not assignable to type 'CanvasType'.
+src/app/api/webhooks/flutterwave/route.ts(42,17): error TS2353: Object literal may only specify known properties, and 'flutterwaveCustomerId' does not exist in type '(Without<SubscriptionUpdateInput, SubscriptionUncheckedUpdateInput> & SubscriptionUncheckedUpdateInput) | (Without<...> & SubscriptionUpdateInput)'.
+src/app/api/webhooks/flutterwave/route.ts(54,17): error TS2353: Object literal may only specify known properties, and 'flutterwaveCustomerId' does not exist in type '(Without<SubscriptionCreateInput, SubscriptionUncheckedCreateInput> & SubscriptionUncheckedCreateInput) | (Without<...> & SubscriptionCreateInput)'.
+src/app/api/webhooks/flutterwave/route.ts(80,20): error TS2353: Object literal may only specify known properties, and 'flutterwaveCustomerId' does not exist in type 'SubscriptionWhereInput'.
+src/components/chat/suggestions.tsx(137,15): error TS2322: Type '{ hidden: { opacity: number; y: number; scale: number; }; visible: { opacity: number; y: number; scale: number; transition: { type: string; stiffness: number; damping: number; }; }; }' is not assignable to type 'Variants'.
+  Property 'visible' is incompatible with index signature.
+    Type '{ opacity: number; y: number; scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type '{ transition?: Transition<any> | undefined; transitionEnd?: ResolvedValues$1 | undefined; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'Transition<any> | undefined'.
+              Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'type' are incompatible.
+                    Type 'string' is not assignable to type 'AnimationGeneratorType | undefined'.

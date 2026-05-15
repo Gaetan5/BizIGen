@@ -1,0 +1,187 @@
+
+> bizgen-ai@0.2.0 lint
+> eslint .
+
+
+/home/gaetan/Documents/GitHub/BizIGen/BizIGen/src/app/(dashboard)/assistant/page.tsx
+  106:9   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/gaetan/Documents/GitHub/BizIGen/BizIGen/src/app/(dashboard)/assistant/page.tsx:106:9
+  104 |       try {
+  105 |         const parsed = JSON.parse(saved);
+> 106 |         setConversations(parsed.map((c: Conversation) => ({
+      |         ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  107 |           ...c,
+  108 |           createdAt: new Date(c.createdAt),
+  109 |           updatedAt: new Date(c.updatedAt),                                                                                                 react-hooks/set-state-in-effect
+  311:10  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+/home/gaetan/Documents/GitHub/BizIGen/BizIGen/src/app/(dashboard)/assistant/page.tsx:311:10
+  309 |       {/* Desktop Sidebar */}
+  310 |       <aside className="hidden md:flex w-72 border-r bg-muted/30 flex-col">
+> 311 |         <SidebarContent />
+      |          ^^^^^^^^^^^^^^ This component is created during render
+  312 |       </aside>
+  313 |
+  314 |       {/* Main Chat Area */}
+
+/home/gaetan/Documents/GitHub/BizIGen/BizIGen/src/app/(dashboard)/assistant/page.tsx:251:26
+  249 |
+  250 |   // Sidebar content
+> 251 |   const SidebarContent = () => (
+      |                          ^^^^^^^
+> 252 |     <div className="flex flex-col h-full">
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 253 |       <div className="p-4 border-b">
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 304 |     </div>
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 305 |   );
+      | ^^^^ The component is created during render here
+  306 |
+  307 |   return (
+  308 |     <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">           react-hooks/static-components
+  327:18  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+/home/gaetan/Documents/GitHub/BizIGen/BizIGen/src/app/(dashboard)/assistant/page.tsx:327:18
+  325 |               </SheetTrigger>
+  326 |               <SheetContent side="left" className="p-0 w-80">
+> 327 |                 <SidebarContent />
+      |                  ^^^^^^^^^^^^^^ This component is created during render
+  328 |               </SheetContent>
+  329 |             </Sheet>
+  330 |
+
+/home/gaetan/Documents/GitHub/BizIGen/BizIGen/src/app/(dashboard)/assistant/page.tsx:251:26
+  249 |
+  250 |   // Sidebar content
+> 251 |   const SidebarContent = () => (
+      |                          ^^^^^^^
+> 252 |     <div className="flex flex-col h-full">
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 253 |       <div className="p-4 border-b">
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 304 |     </div>
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 305 |   );
+      | ^^^^ The component is created during render here
+  306 |
+  307 |   return (
+  308 |     <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">  react-hooks/static-components
+
+/home/gaetan/Documents/GitHub/BizIGen/BizIGen/src/app/(dashboard)/projects/[id]/project-page-content.tsx
+  75:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/gaetan/Documents/GitHub/BizIGen/BizIGen/src/app/(dashboard)/projects/[id]/project-page-content.tsx:75:7
+  73 |   useEffect(() => {
+  74 |     if (!generating) {
+> 75 |       setGenerationProgress(10);
+     |       ^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  76 |       return;
+  77 |     }
+  78 |     const interval = setInterval(() => {                                                               react-hooks/set-state-in-effect
+  90:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/gaetan/Documents/GitHub/BizIGen/BizIGen/src/app/(dashboard)/projects/[id]/project-page-content.tsx:90:7
+  88 |   useEffect(() => {
+  89 |     if (generating && generatedDoc?.status === 'COMPLETED') {
+> 90 |       setGenerating(false);
+     |       ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  91 |       setGenerationProgress(100);
+  92 |       toast.success('Documents générés avec succès !');
+  93 |     }  react-hooks/set-state-in-effect
+
+/home/gaetan/Documents/GitHub/BizIGen/BizIGen/src/app/(dashboard)/projects/new/page.tsx
+  70:9  error  Error: Cannot access variable before it is declared
+
+`saveAnswers` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/home/gaetan/Documents/GitHub/BizIGen/BizIGen/src/app/(dashboard)/projects/new/page.tsx:70:9
+  68 |     if (projectId && Object.keys(answers).length > 0) {
+  69 |       const saveTimer = setTimeout(() => {
+> 70 |         saveAnswers();
+     |         ^^^^^^^^^^^ `saveAnswers` accessed before it is declared
+  71 |       }, 2000);
+  72 |       return () => clearTimeout(saveTimer);
+  73 |     }
+
+/home/gaetan/Documents/GitHub/BizIGen/BizIGen/src/app/(dashboard)/projects/new/page.tsx:76:3
+  74 |   }, [answers, projectId]);
+  75 |
+> 76 |   const saveAnswers = async () => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 77 |     if (!projectId) return;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 78 |     
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 88 |     }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 89 |   };
+     | ^^^^^ `saveAnswers` is declared here
+  90 |
+  91 |   const handleSectorSelect = async (selectedSector: Sector) => {
+  92 |     setSector(selectedSector);  react-hooks/immutability
+
+/home/gaetan/Documents/GitHub/BizIGen/BizIGen/src/components/ui/carousel.tsx
+  98:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/gaetan/Documents/GitHub/BizIGen/BizIGen/src/components/ui/carousel.tsx:98:5
+   96 |   React.useEffect(() => {
+   97 |     if (!api) return
+>  98 |     onSelect(api)
+      |     ^^^^^^^^ Avoid calling setState() directly within an effect
+   99 |     api.on("reInit", onSelect)
+  100 |     api.on("select", onSelect)
+  101 |  react-hooks/set-state-in-effect
+
+/home/gaetan/Documents/GitHub/BizIGen/BizIGen/src/hooks/use-mobile.ts
+  14:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/gaetan/Documents/GitHub/BizIGen/BizIGen/src/hooks/use-mobile.ts:14:5
+  12 |     }
+  13 |     mql.addEventListener("change", onChange)
+> 14 |     setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+     |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  15 |     return () => mql.removeEventListener("change", onChange)
+  16 |   }, [])
+  17 |  react-hooks/set-state-in-effect
+
+✖ 8 problems (8 errors, 0 warnings)
+
