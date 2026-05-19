@@ -65,6 +65,7 @@ class Settings(BaseSettings):
     
     # AI Services
     OPENAI_API_KEY: Optional[str] = None
+    SERPER_API_KEY: Optional[str] = None
     AI_MODEL: str = "gpt-4o-mini"
     
     # Next.js Frontend

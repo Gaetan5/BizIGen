@@ -27,6 +27,7 @@ from app.services.enhanced_ai_service import (
     AITimeoutError,
 )
 from app.services.business_audit import business_audit
+from app.services.consistency_service import consistency_service
 from app.schemas.ai_schemas import AIResponseType
 
 logger = logging.getLogger(__name__)
@@ -271,14 +272,30 @@ async def generate_documents(
                     gen_doc.rawContent = json.dumps(validated.content, ensure_ascii=False)
                     logger.info(f"Business Plan generated successfully (model: {validated.model_used})")
                     
-                    # RUN STRATEGIC AUDIT (Expert Feature)
+                    # 1. RUN STRATEGIC AUDIT (Expert Feature)
                     logger.info(f"Running strategic audit for project {project.id}")
-                    audit_result = await business_audit.audit_project({
-                        "name": project.name,
-                        "sector": project.sector,
-                        "content": validated.content
-                    })
+                    # Récupération de la description depuis les inputs du formulaire
+                    description = form_data.get('description', 'Pas de description')
+                    
+                    audit_result = await business_audit.audit_project(
+                        project_name=project.name,
+                        sector=project.sector,
+                        country=project.country,
+                        description=description
+                    )
                     results["strategic_audit"] = audit_result
+                    
+                    # 2. RUN CONSISTENCY CHECK (Final Honesty Gate)
+                    if results.get("bmc") and results.get("financial_plan"):
+                        logger.info(f"Running logical consistency check for project {project.id}")
+                        consistency_report = await consistency_service.check_alignment(
+                            bmc=results.get("bmc"),
+                            financials=results.get("financial_plan"),
+                            lean=results.get("lean")
+                        )
+                        results["consistency_report"] = consistency_report
+                    else:
+                        logger.info("Skipping consistency check: missing BMC or Financial Plan in current context.")
                 else:
                     errors.append(f"BP validation failed: {validated.validation_errors}")
                     

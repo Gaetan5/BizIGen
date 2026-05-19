@@ -16,7 +16,7 @@ from datetime import datetime
 
 from app.config import settings
 from app.database import init_db
-from app.routers import auth, projects, generate, export, chat, subscriptions, admin, password_reset, webhooks, onboarding, share, integrations
+from app.routers import auth, projects, generate, export, chat, subscriptions, admin, password_reset, webhooks, onboarding, share, integrations, intelligence
 
 # Setup structured logging
 from app.services.monitoring_service import setup_logging, logger, metrics, health_checker
@@ -246,8 +246,11 @@ def get_cors_origins() -> list[str]:
     cors_origins = settings.CORS_ORIGINS
     
     if cors_origins == "*":
-        logger.warning("CORS is set to allow all origins. This is not recommended for production!")
-        return ["*"]
+        if settings.DEBUG:
+            # En développement, on peut être plus flexible mais FastAPI n'aime pas "*" avec credentials
+            return ["http://localhost:3000", "http://127.0.0.1:3000"]
+        logger.error("CORS_ORIGINS='*' is incompatible with allow_credentials=True. Please specify explicit domains.")
+        return []
     
     # Parse comma-separated origins
     origins = [origin.strip() for origin in cors_origins.split(",")]
@@ -403,6 +406,7 @@ app.include_router(onboarding.router)
 app.include_router(share.router)
 app.include_router(webhooks.router)
 app.include_router(integrations.router)
+app.include_router(intelligence.router)
 
 
 # ============================================
