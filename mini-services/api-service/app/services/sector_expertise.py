@@ -1,63 +1,59 @@
 """
 BizGen AI - Sector Expertise Service
-Provides deep, professional knowledge for specific business verticals.
+Provides domain-specific knowledge and KPIs for specialized industries.
+Focuses on African and Emerging Markets.
 """
-from enum import Enum
-from typing import Dict, Any, List
+import logging
+from typing import Dict, Any, List, Optional
 
-class BusinessSector(str, Enum):
-    FINANCE = "finance"
-    TRADING = "trading"
-    TECH_INNOVATION = "tech_innovation"
-    ELECTRONIC_MONEY = "electronic_money"
-    COMMERCE = "commerce"
-    AGRITECH = "agritech"
-    LOGISTICS = "logistics"
-    STOCK_MARKET = "stock_market"
+logger = logging.getLogger(__name__)
 
-SECTOR_KNOWLEDGE: Dict[BusinessSector, Dict[str, Any]] = {
-    BusinessSector.FINANCE: {
-        "focus": ["EBITDA", "Flux de trésorerie", "ROI", "Leverage", "Gestion des risques"],
-        "directives": "Focus sur la solidité financière, les projections de cash-flow et l'analyse de rentabilité.",
-        "keywords": ["Capitaux propres", "Dette", "Fonds de roulement", "Marge nette"]
+SECTOR_KNOWLEDGE = {
+    "Agriculture": {
+        "critical_factors": ["Saisonnalité", "Logistique du froid", "Accès aux intrants", "Régulation foncière"],
+        "typical_kpis": ["Rendement à l'hectare", "Taux de perte post-récolte", "Coût de collecte"],
+        "expert_prompt": "Agis comme un Ingénieur Agronome et Business Developer Agri. Focus sur la chaîne de valeur et la résilience climatique."
     },
-    BusinessSector.TRADING: {
-        "focus": ["Liquidité", "Volatility", "Risk/Reward", "Indicateurs techniques", "Execution"],
-        "directives": "Analyse pointue de la volatilité des marchés, stratégies de couverture (hedging) et psychologie des marchés.",
-        "keywords": ["Arbitrage", "Spread", "Leverage", "Drawdown", "Slippage"]
+    "Fintech": {
+        "critical_factors": ["Conformité (KYC/AML)", "Sécurité des données", "Interopérabilité", "Coût d'acquisition client (CAC)"],
+        "typical_kpis": ["LTV (Lifetime Value)", "Churn Rate", "Volume Transactionnel (GTV)"],
+        "expert_prompt": "Agis comme un Expert en Systèmes de Paiement et Régulation Bancaire. Focus sur la sécurité, la fraude et l'adoption utilisateur."
     },
-    BusinessSector.TECH_INNOVATION: {
-        "focus": ["Scalabilité", "MVP", "Stack technologique", "Propriété intellectuelle"],
-        "directives": "Mise en avant de l'avantage technologique, de la roadmap produit et de la scalabilité exponentielle.",
-        "keywords": ["API", "SaaS", "Architecture Cloud", "UX/UI", "Agile"]
+    "E-commerce": {
+        "critical_factors": ["Logistique du dernier kilomètre", "Confiance client", "Paiement à la livraison", "Gestion des stocks"],
+        "typical_kpis": ["Panier moyen", "Taux de conversion", "Délai de livraison"],
+        "expert_prompt": "Agis comme un Expert en Growth Hacking et Logistique E-commerce. Focus sur l'expérience client et l'optimisation des flux."
     },
-    BusinessSector.ELECTRONIC_MONEY: {
-        "focus": ["Interopérabilité", "Conformité KYC/AML", "Agent Network", "Transaction volume"],
-        "directives": "Expertise sur le Mobile Money, la réglementation BCEAO/CEMAC et la sécurisation des transactions.",
-        "keywords": ["Gateway", "Wallet", "Ledger", "Cash-in/Cash-out", "QR Payment"]
-    },
-    BusinessSector.STOCK_MARKET: {
-        "focus": ["Capitalisation boursière", "Dividendes", "Analyses fondamentales", "P/E Ratio"],
-        "directives": "Focus sur la valorisation boursière, les rapports annuels et les stratégies d'investissement à long terme.",
-        "keywords": ["Blue chips", "IPO", "Market Cap", "Volatility Index", "Yield"]
+    "Sante": {
+        "critical_factors": ["Éthique", "Accessibilité", "Qualité des soins", "Gestion des données sensibles"],
+        "typical_kpis": ["Taux de consultation", "Satisfaction patient", "Coût par patient"],
+        "expert_prompt": "Agis comme un Consultant en Santé Publique et Management Hospitalier. Focus sur l'impact social et la rigueur médicale."
     }
 }
 
 class SectorExpertiseService:
-    def get_expertise(self, sector_name: str) -> str:
-        """Get specialized directives for a specific sector"""
-        # Default expertise
-        default_expertise = "Focus sur la croissance business et la rentabilité commerciale."
+    """
+    Expert Knowledge Hub.
+    Injects industry-specific context into AI generations.
+    """
+    
+    def get_expertise(self, sector: str) -> Dict[str, Any]:
+        """Returns specialized data for a given sector"""
+        # Match flexible (ex: 'Agri-business' -> 'Agriculture')
+        for key in SECTOR_KNOWLEDGE:
+            if key.lower() in sector.lower():
+                return SECTOR_KNOWLEDGE[key]
         
-        # Try to match the sector
-        sector_name_lower = sector_name.lower()
-        
-        for sector_enum, knowledge in SECTOR_KNOWLEDGE.items():
-            if sector_enum.value in sector_name_lower or sector_name_lower in sector_enum.value:
-                focus_str = ", ".join(knowledge["focus"])
-                return f"\nEXPERTISE SECTORIELLE ({sector_enum.value.upper()}) :\n- Directives : {knowledge['directives']}\n- Points clés : {focus_str}\n- Terminologie : {', '.join(knowledge['keywords'])}"
-        
-        return f"\nEXPERTISE BUSINESS GÉNÉRALE :\n{default_expertise}"
+        # Default fallback
+        return {
+            "critical_factors": ["Rentabilité", "Marché", "Équipe"],
+            "typical_kpis": ["Revenu", "Coûts", "Marge"],
+            "expert_prompt": "Agis comme un Consultant Business généraliste."
+        }
 
-# Singleton instance
+    def enrich_prompt(self, sector: str, original_prompt: str) -> str:
+        """Enriches a prompt with sector-specific instructions"""
+        expertise = self.get_expertise(sector)
+        return f"{expertise['expert_prompt']}\nPrends en compte ces facteurs critiques : {', '.join(expertise['critical_factors'])}\n{original_prompt}"
+
 sector_expertise = SectorExpertiseService()

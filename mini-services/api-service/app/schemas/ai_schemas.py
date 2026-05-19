@@ -294,10 +294,12 @@ class AIResponseType(str, Enum):
     CHAT = "chat"
 
 
+from typing import List, Optional, Dict, Union, Any
+
 class ValidatedAIResponse(BaseModel):
-    """Wrapper for validated AI response"""
+    """Wrapper for strictly validated AI response"""
     response_type: AIResponseType
-    content: Dict[str, Any]
+    content: Union[BMCResponse, LeanCanvasResponse, BusinessPlanResponse, Dict[str, str]]
     is_valid: bool = True
     validation_errors: Optional[List[str]] = None
     raw_response: Optional[str] = None

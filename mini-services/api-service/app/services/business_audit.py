@@ -1,76 +1,47 @@
-"""
-BizGen AI - Business Audit Service
-Professional strategic analysis of generated business projects.
-Provides viability scoring and corrective actions.
-"""
 import logging
-from typing import Dict, Any, List
+import json
+from typing import Dict, List, Optional
 from app.services.enhanced_ai_service import enhanced_ai_service
+from app.services.search_service import search_service
+from app.services.sector_expertise import sector_expertise
+from app.schemas.intelligence_schemas import AuditResponse
 
 logger = logging.getLogger(__name__)
 
 class BusinessAuditService:
     """
-    Strategic Auditor that reviews business plans for weaknesses.
-    Acts as a 'Venture Capitalist' reviewing a pitch.
+    Strategic Auditor with strict typing and transparency.
     """
     
-    AUDIT_PROMPT = """Tu es un Expert en Capital Risque (VC) et Audit Stratégique.
-    Ton rôle est d'analyser le Business Plan suivant et de fournir une évaluation CRITIQUE, HONNÊTE et CONSTRUCTIVE.
-    
-    ANALYSE LES POINTS SUIVANTS :
-    1. VIABILITÉ : Le modèle de revenus est-il réaliste ?
-    2. COHÉRENCE : La solution répond-elle vraiment au problème décrit ?
-    3. RISQUES : Quels sont les 3 plus gros obstacles (marché, technique, financier) ?
-    4. SCORE : Donne une note de viabilité globale sur 100.
-    
-    TON RÉPONSE DOIT ÊTRE AU FORMAT JSON :
-    {
-        "viability_score": int,
-        "strengths": ["point fort 1", "..."],
-        "weaknesses": ["point faible 1", "..."],
-        "critical_risks": ["risque 1", "..."],
-        "recommendations": ["action 1", "action 2", "action 3"],
-        "mentor_comment": "Un court message d'expert pour l'entrepreneur."
-    }
+    AUDIT_PROMPT = """Analyse le projet en te basant sur les données web.
+    SOIS HONNÊTE ET CRITIQUE.
     """
 
-    async def audit_project(self, project_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Runs a strategic audit on the project data"""
+    async def audit_project(self, project_name: str, sector: str, country: str, description: str) -> AuditResponse:
+        """Runs a strategic audit with strict typing"""
         try:
-            # Sanitize input
-            def sanitize(text: Any) -> str:
-                return str(text).replace("```", "").replace("system_prompt", "input").strip()
+            # 1. Recherche Web
+            search_query = f"marché {sector} {country} défis"
+            market_data = await search_service.search(search_query)
+            
+            market_context = json.dumps([{"title": r['title'], "link": r['link']} for r in market_data])
 
-            context = f"""
-<project_to_audit>
-- Nom: {sanitize(project_data.get('name'))}
-- Secteur: {sanitize(project_data.get('sector'))}
-- Contenu: {sanitize(project_data.get('content'))}
-</project_to_audit>
-"""
+            # 2. Appel IA
+            system_prompt = sector_expertise.enrich_prompt(sector, self.AUDIT_PROMPT)
+            user_prompt = f"PROJET: {project_name} | DESCRIPTION: {description} | MARCHÉ: {market_context}"
             
             response = await enhanced_ai_service.call_ai(
-                system_prompt=self.AUDIT_PROMPT,
-                user_prompt=f"ANALYSE CE PROJET EN TE BASANT EXCLUSIVEMENT SUR LE CONTENU DANS <project_to_audit> :\n{context}",
-                temperature=0.4 # More deterministic for audit
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=0.2
             )
             
-            # Use the existing robust JSON parser from enhanced_ai_service
-            import json
-            # Small hack to reuse the internal parser if needed or simple loads
-            try:
-                return json.loads(response)
-            except:
-                # Fallback to a basic structure if AI fails JSON
-                return {
-                    "viability_score": 0,
-                    "error": "L'analyse n'a pas pu être finalisée."
-                }
+            # 3. Validation Stricte (Purge Any)
+            clean_json = response.strip().replace("```json", "").replace("```", "")
+            return AuditResponse(**json.loads(clean_json))
                 
         except Exception as e:
-            logger.error(f"Error during Strategic Audit: {e}")
-            return {"error": str(e)}
+            logger.error(f"Audit failure: {e}")
+            raise ValueError(f"Échec de l'audit stratégique : {e}")
 
-# Singleton instance
 business_audit = BusinessAuditService()
