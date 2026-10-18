@@ -13,8 +13,12 @@ RUN apk add --no-cache libc6-compat
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies (including Prisma)
-RUN npm ci --legacy-peer-deps
+# Install dependencies (including Prisma) with extended network timeout
+RUN npm config set fetch-retries 5 \
+    && npm config set fetch-retry-mintimeout 20000 \
+    && npm config set fetch-retry-maxtimeout 120000 \
+    && npm config set fetch-timeout 300000 \
+    && npm ci --legacy-peer-deps
 
 COPY . .
 
