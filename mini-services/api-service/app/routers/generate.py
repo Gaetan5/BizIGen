@@ -273,17 +273,20 @@ async def generate_documents(
                     logger.info(f"Business Plan generated successfully (model: {validated.model_used})")
                     
                     # 1. RUN STRATEGIC AUDIT (Expert Feature)
-                    logger.info(f"Running strategic audit for project {project.id}")
-                    # Récupération de la description depuis les inputs du formulaire
-                    description = form_data.get('description', 'Pas de description')
-                    
-                    audit_result = await business_audit.audit_project(
-                        project_name=project.name,
-                        sector=project.sector,
-                        country=project.country,
-                        description=description
-                    )
-                    results["strategic_audit"] = audit_result
+                    try:
+                        logger.info(f"Running strategic audit for project {project.id}")
+                        # Récupération de la description depuis les inputs du formulaire
+                        description = form_data.get('description', 'Pas de description')
+                        
+                        audit_result = await business_audit.audit_project(
+                            project_name=project.name,
+                            sector=project.sector,
+                            country=project.country,
+                            description=description
+                        )
+                        results["strategic_audit"] = audit_result.model_dump() if hasattr(audit_result, "model_dump") else audit_result
+                    except Exception as audit_err:
+                        logger.warning(f"Strategic audit failed: {audit_err}")
                     
                     # 2. RUN CONSISTENCY CHECK (Final Honesty Gate)
                     if results.get("bmc") and results.get("financial_plan"):

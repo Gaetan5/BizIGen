@@ -106,6 +106,12 @@ class BMCResponse(BaseModel):
             raise ValueError('List must have at least 2 non-empty items')
         return validated
 
+    def __contains__(self, item: str) -> bool:
+        return item in self.model_fields or hasattr(self, item)
+
+    def __getitem__(self, item: str):
+        return getattr(self, item)
+
 
 class CustomerSegmentsLean(BaseModel):
     """Customer segments for Lean Canvas"""
@@ -182,6 +188,12 @@ class LeanCanvasResponse(BaseModel):
     customer_segments: CustomerSegmentsLean
     cost_structure: CostStructureLean
     revenue_streams: RevenueStreamsLean
+
+    def __contains__(self, item: str) -> bool:
+        return item in self.model_fields or hasattr(self, item)
+
+    def __getitem__(self, item: str):
+        return getattr(self, item)
 
 
 class CompanyOverview(BaseModel):
@@ -285,6 +297,12 @@ class BusinessPlanResponse(BaseModel):
             raise ValueError('Executive summary must be at least 50 words')
         return v
 
+    def __contains__(self, item: str) -> bool:
+        return item in self.model_fields or hasattr(self, item)
+
+    def __getitem__(self, item: str):
+        return getattr(self, item)
+
 
 class AIResponseType(str, Enum):
     """Types of AI responses"""
@@ -299,7 +317,7 @@ from typing import List, Optional, Dict, Union, Any
 class ValidatedAIResponse(BaseModel):
     """Wrapper for strictly validated AI response"""
     response_type: AIResponseType
-    content: Union[BMCResponse, LeanCanvasResponse, BusinessPlanResponse, Dict[str, str]]
+    content: Union[BMCResponse, LeanCanvasResponse, BusinessPlanResponse, Dict[str, Any], Any]
     is_valid: bool = True
     validation_errors: Optional[List[str]] = None
     raw_response: Optional[str] = None

@@ -66,13 +66,13 @@ class TestAdminUsers:
     ):
         """Test deleting a user as admin"""
         # Create a user to delete
-        from passlib.context import CryptContext
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        import bcrypt
+        hashed = bcrypt.hashpw(b"Password123!", bcrypt.gensalt()).decode("utf-8")
         
         user = User(
             email="delete_me@example.com",
             name="Delete Me",
-            passwordHash=pwd_context.hash("Password123!"),
+            passwordHash=hashed,
             role="USER"
         )
         db_session.add(user)

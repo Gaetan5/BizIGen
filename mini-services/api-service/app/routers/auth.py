@@ -5,8 +5,7 @@ Handles user registration, login, and JWT tokens
 from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from passlib.context import CryptContext
+import bcrypt
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional
@@ -17,8 +16,7 @@ from app.models.models import User, Subscription
 from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
-security = HTTPBearer()
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+security = HTTPBearer(auto_error=False)
 
 
 # ============================================
@@ -36,6 +34,13 @@ class UserLogin(BaseModel):
     password: str
 
 
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    currentPassword: Optional[str] = None
+    newPassword: Optional[str] = None
+
+
 class UserResponse(BaseModel):
     id: str
     email: str
@@ -47,22 +52,35 @@ class UserResponse(BaseModel):
 
 
 class TokenResponse(BaseModel):
+    success: bool = True
+    token: Optional[str] = None
     access_token: str
     token_type: str = "bearer"
     expires_in: int
     user: UserResponse
 
+    def __init__(self, **data):
+        if "access_token" in data and "token" not in data:
+            data["token"] = data["access_token"]
+        elif "token" in data and "access_token" not in data:
+            data["access_token"] = data["token"]
+        super().__init__(**data)
 
-# ============================================
-# HELPERS
-# ============================================
+
+from sqlalchemy import select
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    if not hashed_password or not plain_password:
+        return False
+    try:
+        return bcrypt.checkpw(plain_password[:72].encode('utf-8'), hashed_password.encode('utf-8'))
+    except Exception:
+        return False
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password[:72].encode('utf-8'), salt).decode('utf-8')
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -115,7 +133,7 @@ async def get_current_user(
             if user:
                 return user
 
-    # 2. Regular JWT Authentication
+    # 3. Regular JWT Authentication
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -152,6 +170,11 @@ async def get_current_user(
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     """Register a new user"""
+    if len(user_data.password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password is too weak. Must be at least 8 characters long."
+        )
     
     # Check if user exists
     result = await db.execute(select(User).where(User.email == user_data.email))
@@ -160,7 +183,7 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
+            detail="User with this email already exists"
         )
     
     # Create user
@@ -181,6 +204,8 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         plan="FREE"
     )
     db.add(subscription)
+    await db.commit()
+    await db.refresh(user)
     
     # Create access token
     access_token = create_access_token(
@@ -188,6 +213,8 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     )
     
     return TokenResponse(
+        success=True,
+        token=access_token,
         access_token=access_token,
         token_type="bearer",
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
@@ -226,6 +253,8 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
     )
     
     return TokenResponse(
+        success=True,
+        token=access_token,
         access_token=access_token,
         token_type="bearer",
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
@@ -249,6 +278,51 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
     )
 
 
+@router.put("/me", response_model=UserResponse)
+async def update_current_user(
+    update_data: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update current user profile or password"""
+    if update_data.name is not None:
+        current_user.name = update_data.name
+
+    if update_data.newPassword:
+        if not update_data.currentPassword or not verify_password(update_data.currentPassword, current_user.passwordHash):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is incorrect"
+            )
+        if len(update_data.newPassword) < 8:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password must be at least 8 characters long"
+            )
+        current_user.passwordHash = hash_password(update_data.newPassword)
+
+    await db.commit()
+    await db.refresh(current_user)
+
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        name=current_user.name,
+        role=current_user.role
+    )
+
+
+@router.delete("/me")
+async def delete_current_user(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete current user account"""
+    await db.delete(current_user)
+    await db.commit()
+    return {"success": True, "message": "User deleted successfully"}
+
+
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(current_user: User = Depends(get_current_user)):
     """Refresh access token"""
@@ -257,6 +331,8 @@ async def refresh_token(current_user: User = Depends(get_current_user)):
     )
     
     return TokenResponse(
+        success=True,
+        token=access_token,
         access_token=access_token,
         token_type="bearer",
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,

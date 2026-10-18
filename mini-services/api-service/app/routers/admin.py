@@ -27,6 +27,7 @@ class AdminStats(BaseModel):
     totalProjects: int
     totalDocuments: int
     totalExports: int
+    activeSubscriptions: int = 0
     revenue: dict
     planDistribution: dict
 
@@ -46,6 +47,12 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
     role: Optional[str] = None
     plan: Optional[str] = None
+
+
+class AdminSubscriptionUpdate(BaseModel):
+    plan: Optional[str] = None
+    status: Optional[str] = "ACTIVE"
+    expiresAt: Optional[str] = None
 
 
 # ============================================
@@ -103,17 +110,28 @@ async def get_admin_stats(
     result = await db.execute(select(func.count(Export.id)))
     total_exports = result.scalar() or 0
     
+    # Active subscriptions
+    result = await db.execute(
+        select(func.count(Subscription.id)).where(Subscription.status == "ACTIVE")
+    )
+    active_subscriptions = result.scalar() or 0
+    
     # Plan distribution
     result = await db.execute(
         select(Subscription.plan, func.count(Subscription.id))
         .group_by(Subscription.plan)
     )
-    plan_dist = dict(result.fetchall())
+    plan_counts = dict(result.fetchall())
+    plan_distribution = {
+        "FREE": plan_counts.get("FREE", 0),
+        "BASIC": plan_counts.get("BASIC", 0),
+        "PRO": plan_counts.get("PRO", 0)
+    }
     
-    # Revenue estimation (Basic: 7€, Pro: 19€)
-    basic_count = plan_dist.get("BASIC", 0)
-    pro_count = plan_dist.get("PRO", 0)
-    monthly_revenue = (basic_count * 7) + (pro_count * 19)
+    # Estimated MRR
+    basic_price = 9
+    pro_price = 19
+    estimated_mrr = (plan_distribution["BASIC"] * basic_price) + (plan_distribution["PRO"] * pro_price)
     
     return AdminStats(
         totalUsers=total_users,
@@ -122,24 +140,35 @@ async def get_admin_stats(
         totalProjects=total_projects,
         totalDocuments=total_docs,
         totalExports=total_exports,
+        activeSubscriptions=active_subscriptions,
         revenue={
-            "monthly": monthly_revenue,
+            "monthly": estimated_mrr,
             "currency": "EUR"
         },
-        planDistribution={
-            "FREE": plan_dist.get("FREE", 0),
-            "BASIC": basic_count,
-            "PRO": pro_count
-        }
+        planDistribution=plan_distribution
     )
 
 
+@router.get("/revenue")
+async def get_revenue_stats(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get revenue stats"""
+    return {
+        "monthly": 0,
+        "yearly": 0,
+        "currency": "EUR",
+        "breakdown": []
+    }
+
+
 # ============================================
-# USER MANAGEMENT
+# USERS MANAGEMENT
 # ============================================
 
-@router.get("/users", response_model=List[UserAdmin])
-async def list_users(
+@router.get("/users")
+async def list_all_users(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     search: Optional[str] = None,
@@ -192,7 +221,7 @@ async def list_users(
         for user in users
     ]
     
-    return user_list
+    return {"users": user_list}
 
 
 @router.put("/users/{user_id}")
@@ -230,7 +259,17 @@ async def update_user(
             if data.plan != "FREE":
                 sub.status = "ACTIVE"
     
-    return {"success": True, "message": "User updated"}
+    await db.commit()
+    await db.refresh(user)
+    
+    return {
+        "id": user.id,
+        "email": user.email,
+        "name": user.name,
+        "role": user.role,
+        "success": True,
+        "message": "User updated"
+    }
 
 
 @router.delete("/users/{user_id}")
@@ -251,6 +290,7 @@ async def delete_user(
         raise HTTPException(status_code=404, detail="User not found")
     
     await db.delete(user)
+    await db.commit()
     
     return {"success": True, "message": "User deleted"}
 
@@ -312,7 +352,7 @@ async def list_subscriptions(
     result = await db.execute(query)
     subs = result.scalars().all()
     
-    return [
+    sub_list = [
         {
             "id": s.id,
             "userId": s.userId,
@@ -324,3 +364,48 @@ async def list_subscriptions(
         }
         for s in subs
     ]
+    return {"subscriptions": sub_list}
+
+
+@router.put("/subscriptions/{user_id}")
+async def update_user_subscription(
+    user_id: str,
+    sub_data: AdminSubscriptionUpdate,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update a user's subscription (admin only)"""
+    result = await db.execute(select(Subscription).where(Subscription.userId == user_id))
+    sub = result.scalar_one_or_none()
+    
+    if not sub:
+        sub = Subscription(
+            userId=user_id,
+            plan=sub_data.plan or "PRO",
+            status=sub_data.status or "ACTIVE"
+        )
+        db.add(sub)
+    else:
+        if sub_data.plan:
+            sub.plan = sub_data.plan
+        if sub_data.status:
+            sub.status = sub_data.status
+        if sub_data.expiresAt:
+            try:
+                sub.currentPeriodEnd = datetime.fromisoformat(sub_data.expiresAt)
+            except Exception:
+                pass
+    
+    await db.commit()
+    await db.refresh(sub)
+    
+    return {
+        "success": True,
+        "message": "Subscription updated",
+        "subscription": {
+            "id": sub.id,
+            "userId": sub.userId,
+            "plan": sub.plan,
+            "status": sub.status
+        }
+    }

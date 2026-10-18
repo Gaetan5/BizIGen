@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -58,6 +58,21 @@ export default function NewProjectPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
 
+  const saveAnswers = useCallback(async () => {
+    if (!projectId) return;
+    
+    try {
+      await fetch(`/api/projects/${projectId}/inputs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ answers }),
+      });
+    } catch (error) {
+      console.error('Auto-save error:', error);
+    }
+  }, [projectId, answers]);
+
   // Get questions for selected sector
   const questions = sector ? SECTOR_QUESTIONS[sector as Sector] || [] : [];
   const currentStepQuestions = questions.filter(q => q.step === currentStep);
@@ -71,22 +86,7 @@ export default function NewProjectPage() {
       }, 2000);
       return () => clearTimeout(saveTimer);
     }
-  }, [answers, projectId]);
-
-  const saveAnswers = async () => {
-    if (!projectId) return;
-    
-    try {
-      await fetch(`/api/projects/${projectId}/inputs`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ answers }),
-      });
-    } catch (error) {
-      console.error('Auto-save error:', error);
-    }
-  };
+  }, [answers, projectId, saveAnswers]);
 
   const handleSectorSelect = async (selectedSector: Sector) => {
     setSector(selectedSector);

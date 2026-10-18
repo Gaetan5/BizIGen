@@ -71,10 +71,7 @@ export function ProjectPageContent({ id }: { id: string }) {
 
   // Progression dynamique pendant la génération (m1 fix)
   useEffect(() => {
-    if (!generating) {
-      setGenerationProgress(10);
-      return;
-    }
+    if (!generating) return;
     const interval = setInterval(() => {
       setGenerationProgress(prev => {
         if (prev >= 90) return 90; // Plafonner à 90% tant que non terminé
@@ -87,9 +84,12 @@ export function ProjectPageContent({ id }: { id: string }) {
   // Check if generation is complete
   useEffect(() => {
     if (generating && generatedDoc?.status === 'COMPLETED') {
-      setGenerating(false);
-      setGenerationProgress(100);
-      toast.success('Documents générés avec succès !');
+      const timer = setTimeout(() => {
+        setGenerating(false);
+        setGenerationProgress(100);
+        toast.success('Documents générés avec succès !');
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [generatedDoc?.status, generating]);
 

@@ -2,7 +2,6 @@ import logging
 import json
 from typing import List, Dict, Optional
 from app.services.search_service import search_service
-from app.services.enhanced_ai_service import enhanced_ai_service
 from app.schemas.intelligence_schemas import MarketIntelligenceResponse
 
 logger = logging.getLogger(__name__)
@@ -52,6 +51,7 @@ class CompetitorDiscoveryService:
             {search_context}
             """
             
+            from app.services.enhanced_ai_service import enhanced_ai_service
             response = await enhanced_ai_service.call_ai(
                 system_prompt=self.DISCOVERY_PROMPT,
                 user_prompt=user_prompt,

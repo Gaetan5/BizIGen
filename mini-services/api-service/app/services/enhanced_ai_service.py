@@ -35,7 +35,6 @@ from app.schemas.ai_schemas import (
 from app.services.sector_expertise import sector_expertise
 from app.services.knowledge_service import knowledge_service
 from app.services.financial_engine import financial_engine
-from app.services.competitor_discovery import competitor_discovery
 
 logger = logging.getLogger(__name__)
 
@@ -772,15 +771,19 @@ Tu DOIS répondre UNIQUEMENT avec un JSON valide, sans texte avant ou après."""
         local_context = knowledge_service.get_context_for_sector(sector)
         
         # Expert Step: Discover real competitors
+        from app.services.competitor_discovery import competitor_discovery
         competitors = await competitor_discovery.discover_competitors(sector, country, form_data.get('description', ''))
         
         system_prompt += f"\n{expertise}"
         if local_context:
             system_prompt += f"\n\nDONNÉES DE RÉFÉRENCE MARCHÉ (UTILISE CES FAITS RÉELS) :\n{local_context}"
         
-        if competitors and "error" not in competitors:
-            import json
-            system_prompt += f"\n\nANALYSE CONCURRENTIELLE RÉELLE (À INTÉGRER AU PLAN) :\n{json.dumps(competitors, ensure_ascii=False)}"
+        if competitors:
+            competitors_data = competitors.model_dump() if hasattr(competitors, "model_dump") else competitors
+            has_error = isinstance(competitors_data, dict) and "error" in competitors_data
+            if not has_error:
+                import json
+                system_prompt += f"\n\nANALYSE CONCURRENTIELLE RÉELLE (À INTÉGRER AU PLAN) :\n{json.dumps(competitors_data, ensure_ascii=False)}"
         
                 # Sanitize user inputs
         def sanitize(text: Any) -> str:

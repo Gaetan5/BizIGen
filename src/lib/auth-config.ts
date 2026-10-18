@@ -6,10 +6,10 @@ import GitHub from 'next-auth/providers/github';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
-// Forcer NEXTAUTH_SECRET en production
-if (!process.env.NEXTAUTH_SECRET && process.env.NODE_ENV === 'production') {
+// Forcer NEXTAUTH_SECRET obligatoirement via variable d'environnement
+if (!process.env.NEXTAUTH_SECRET) {
   throw new Error(
-    '[auth-config] NEXTAUTH_SECRET est manquant. Définissez cette variable d\'environnement avant de démarrer en production.'
+    '[auth-config] NEXTAUTH_SECRET est strictement obligatoire. Définissez cette variable d\'environnement.'
   );
 }
 
@@ -209,5 +209,5 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET ?? 'dev-secret-key-for-local-only',
+  secret: process.env.NEXTAUTH_SECRET,
 };

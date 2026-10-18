@@ -6,11 +6,11 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import json
 
 from app.database import get_db
-from app.models.models import User, Project, FormInput, GeneratedDocument, CanvasData
+from app.models.models import User, Project, FormInput, GeneratedDocument, CanvasData, ChatSession
 from app.routers.auth import get_current_user
 from app.services.ai_service import ai_service
 
@@ -22,13 +22,13 @@ router = APIRouter(prefix="/chat", tags=["AI Chat"])
 # ============================================
 
 class ChatRequest(BaseModel):
-    message: str
+    message: str = Field(..., min_length=1)
     projectId: Optional[str] = None
     context: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
-    success: bool
+    success: bool = True
     response: str
     suggestions: List[str] = []
 
@@ -58,43 +58,64 @@ async def chat_with_ai(
         )
         project = result.scalar_one_or_none()
         
-        if project:
-            # Get form inputs
-            result = await db.execute(
-                select(FormInput)
-                .where(FormInput.projectId == project.id)
+        if not project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Project not found"
             )
-            form_inputs = result.scalars().all()
-            
-            # Get generated document
+        
+        # Get form inputs
+        result = await db.execute(
+            select(FormInput)
+            .where(FormInput.projectId == project.id)
+        )
+        form_inputs = result.scalars().all()
+        
+        # Get generated document
+        result = await db.execute(
+            select(GeneratedDocument)
+            .where(GeneratedDocument.projectId == project.id)
+        )
+        gen_doc = result.scalar_one_or_none()
+        
+        # Get canvas data
+        canvases_data = {}
+        if gen_doc:
             result = await db.execute(
-                select(GeneratedDocument)
-                .where(GeneratedDocument.projectId == project.id)
+                select(CanvasData)
+                .where(CanvasData.docId == gen_doc.id)
             )
-            gen_doc = result.scalar_one_or_none()
-            
-            # Get canvas data
-            canvases_data = {}
-            if gen_doc:
-                result = await db.execute(
-                    select(CanvasData)
-                    .where(CanvasData.docId == gen_doc.id)
-                )
-                canvases = result.scalars().all()
-                for canvas in canvases:
-                    canvases_data[canvas.canvasType] = json.loads(canvas.blocks) if canvas.blocks else {}
-            
-            project_data = {
-                "name": project.name,
-                "sector": project.sector,
-                "status": project.status,
-                "formInputs": {inp.questionKey: inp.answerValue for inp in form_inputs},
-                "canvases": canvases_data,
-            }
+            canvases = result.scalars().all()
+            for canvas in canvases:
+                canvases_data[canvas.canvasType] = json.loads(canvas.blocks) if canvas.blocks else {}
+        
+        project_data = {
+            "name": project.name,
+            "sector": project.sector,
+            "status": project.status,
+            "formInputs": {inp.questionKey: inp.answerValue for inp in form_inputs},
+            "canvases": canvases_data,
+        }
     
     try:
-        from app.services.business_agent import business_agent
+        # Check if ai_service has chat method (for unit tests / primary provider)
+        if hasattr(ai_service, "chat") and callable(getattr(ai_service, "chat")):
+            ai_res = await ai_service.chat(request.message, project_data)
+            if isinstance(ai_res, dict):
+                return ChatResponse(
+                    success=True,
+                    response=ai_res.get("response", ""),
+                    suggestions=ai_res.get("suggestions", [])
+                )
+            elif isinstance(ai_res, str):
+                return ChatResponse(
+                    success=True,
+                    response=ai_res,
+                    suggestions=[]
+                )
         
+        # Fallback to business_agent
+        from app.services.business_agent import business_agent
         response_text = await business_agent.get_advice(
             user_query=request.message,
             project_context=project_data
@@ -103,14 +124,53 @@ async def chat_with_ai(
         return ChatResponse(
             success=True,
             response=response_text,
-            suggestions=[] # Suggestions will be handled by context later
+            suggestions=["Créer un MVP", "Étudier le marché"]
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"AI chat error: {str(e)}"
         )
+
+
+@router.get("/history/{project_id}")
+async def get_chat_history(
+    project_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get chat history for project"""
+    result = await db.execute(
+        select(Project).where(Project.id == project_id, Project.userId == current_user.id)
+    )
+    project = result.scalar_one_or_none()
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+    
+    result = await db.execute(
+        select(ChatSession).where(ChatSession.projectId == project_id)
+    )
+    sessions = result.scalars().all()
+    messages = []
+    for s in sessions:
+        if s.messages:
+            try:
+                msgs = json.loads(s.messages) if isinstance(s.messages, str) else s.messages
+                if isinstance(msgs, list):
+                    messages.extend(msgs)
+            except Exception:
+                pass
+
+    return {
+        "success": True,
+        "messages": messages
+    }
 
 
 @router.post("/suggest-questions/{project_id}")

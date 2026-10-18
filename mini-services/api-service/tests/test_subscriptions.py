@@ -78,8 +78,15 @@ class TestSubscriptionManagement:
     ):
         """Test cancelling subscription"""
         # Update user to have a subscription
-        test_user.subscriptionPlan = "PRO"
-        test_user.subscriptionId = "sub_test123"
+        from app.models.models import Subscription
+        from sqlalchemy import select
+        res = await db_session.execute(select(Subscription).where(Subscription.userId == test_user.id))
+        sub = res.scalar_one_or_none()
+        if sub:
+            sub.plan = "PRO"
+            sub.stripeSubId = "sub_test123"
+        else:
+            db_session.add(Subscription(userId=test_user.id, plan="PRO", stripeSubId="sub_test123", status="ACTIVE"))
         await db_session.commit()
         
         with patch("app.routers.subscriptions.stripe") as mock_stripe:
@@ -135,10 +142,17 @@ class TestSubscriptionLimits:
     ):
         """Test upgrading plan"""
         # Simulate upgrade via webhook
-        test_user.subscriptionPlan = "PRO"
+        from app.models.models import Subscription
+        from sqlalchemy import select
+        res = await db_session.execute(select(Subscription).where(Subscription.userId == test_user.id))
+        sub = res.scalar_one_or_none()
+        if sub:
+            sub.plan = "PRO"
+        else:
+            db_session.add(Subscription(userId=test_user.id, plan="PRO", status="ACTIVE"))
         await db_session.commit()
         
-        response = await client.get("/subscriptions/current", headers=auth_headers)
+        response = await client.get("/subscriptions/status", headers=auth_headers)
         data = response.json()
         
         assert data["plan"] == "PRO"

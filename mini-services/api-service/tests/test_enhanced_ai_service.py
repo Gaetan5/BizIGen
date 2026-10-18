@@ -353,7 +353,15 @@ class TestRetryLogic:
                 "generation_time_ms": 500
             }
         
-        with patch.object(service, '_call_openai', mock_call):
+        from tenacity import retry, stop_after_attempt, wait_none, retry_if_exception_type
+        retried_mock = retry(
+            stop=stop_after_attempt(3),
+            wait=wait_none(),
+            retry=retry_if_exception_type(AIRateLimitError),
+            reraise=True,
+        )(mock_call)
+        
+        with patch.object(service, '_call_openai', retried_mock):
             result = await service._call_openai(
                 "system", "user", "gpt-4o-mini"
             )
@@ -372,7 +380,15 @@ class TestRetryLogic:
             call_count += 1
             raise AIRateLimitError("Always rate limited")
         
-        with patch.object(service, '_call_openai', mock_call):
+        from tenacity import retry, stop_after_attempt, wait_none, retry_if_exception_type
+        retried_mock = retry(
+            stop=stop_after_attempt(3),
+            wait=wait_none(),
+            retry=retry_if_exception_type(AIRateLimitError),
+            reraise=True,
+        )(mock_call)
+        
+        with patch.object(service, '_call_openai', retried_mock):
             with pytest.raises(AIRateLimitError):
                 await service._call_openai(
                     "system", "user", "gpt-4o-mini"

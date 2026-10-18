@@ -5,6 +5,7 @@ Matches Prisma schema exactly for shared SQLite database
 from sqlalchemy import Column, String, DateTime, Integer, Boolean, Text, ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
+from datetime import datetime
 import uuid
 
 from app.database import Base
@@ -49,8 +50,8 @@ class Project(Base):
     subSector = Column(String, nullable=True)
     country = Column(String, default="CM")
     status = Column(String, default="DRAFT")
-    createdAt = Column(DateTime, server_default=func.now())
-    updatedAt = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    createdAt = Column(DateTime, default=datetime.utcnow, server_default=func.now())
+    updatedAt = Column(DateTime, default=datetime.utcnow, server_default=func.now(), onupdate=datetime.utcnow)
     completedAt = Column(DateTime, nullable=True)
     
     # Relationships
@@ -115,6 +116,7 @@ class Subscription(Base):
     userId = Column(String, ForeignKey("User.id", ondelete="CASCADE"), unique=True, nullable=False)
     stripeCustomerId = Column(String, nullable=True, unique=True)
     stripeSubId = Column(String, nullable=True, unique=True)
+    flutterwaveCustomerId = Column(String, nullable=True, unique=True)
     status = Column(String, default="INACTIVE")
     plan = Column(String, default="FREE")
     currentPeriodStart = Column(DateTime, nullable=True)

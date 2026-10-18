@@ -82,6 +82,7 @@ class Settings(BaseSettings):
     FLUTTERWAVE_SECRET_KEY: Optional[str] = None
     FLUTTERWAVE_PUBLIC_KEY: Optional[str] = None
     FLUTTERWAVE_WEBHOOK_HASH: Optional[str] = None
+    FLUTTERWAVE_SECRET_HASH: Optional[str] = None
     
     # CORS
     CORS_ORIGINS: str = "*"

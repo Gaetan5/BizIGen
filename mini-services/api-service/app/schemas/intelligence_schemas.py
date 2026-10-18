@@ -57,6 +57,12 @@ class IndirectCompetitor(BaseModel):
     name: str
     why: str
 
+class MarketIntelligenceResponse(BaseModel):
+    direct_competitors: List[Competitor] = Field(default_factory=list)
+    indirect_competitors: List[IndirectCompetitor] = Field(default_factory=list)
+    market_threats: List[str] = Field(default_factory=list)
+    differentiation_strategy: Optional[str] = None
+
 class AuditResponse(BaseModel):
     """Schéma de validation strict et transparent pour l'audit IA"""
     viability_score: int = Field(..., ge=0, le=100)

@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     subscription_plan VARCHAR(50) DEFAULT 'FREE',
     subscription_id VARCHAR(255),
     stripe_customer_id VARCHAR(255),
+    flutterwave_customer_id VARCHAR(255),
     email_verified BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

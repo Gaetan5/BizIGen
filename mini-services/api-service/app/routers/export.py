@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from datetime import datetime
 from pydantic import BaseModel
 import json
@@ -25,18 +25,25 @@ router = APIRouter(prefix="/export", tags=["Exports"])
 # SCHEMAS
 # ============================================
 
+from pydantic import Field
+
 class ExportRequest(BaseModel):
     projectId: str
-    docType: str  # bmc, lean, bp
-    format: str  # pdf, png, docx
+    docType: Optional[str] = None
+    type: Optional[str] = None
+    format: str = Field(..., pattern="^(pdf|png|docx|csv)$")
+
+    def get_doc_type(self) -> str:
+        return (self.docType or self.type or "bmc").lower()
 
 
 class ExportResponse(BaseModel):
-    success: bool
+    success: bool = True
     exportId: str
     fileName: str
     format: str
     fileUrl: str
+    url: str
     fileSize: int
     message: str
 
@@ -53,6 +60,8 @@ async def export_document(
 ):
     """Export a document in the specified format"""
     
+    doc_type = request.get_doc_type()
+    
     # Get project with generated document
     result = await db.execute(
         select(Project)
@@ -67,12 +76,6 @@ async def export_document(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Project not found"
-        )
-    
-    if project.status != "COMPLETED":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Project not yet completed. Please generate documents first."
         )
     
     # Get generated document
@@ -116,28 +119,28 @@ async def export_document(
     # Get data based on doc type
     export_data: Dict[str, Any] = {}
     
-    if request.docType == "bmc":
+    if doc_type == "bmc":
         bmc_canvas = next(
             (c for c in canvases if c.canvasType == "BUSINESS_MODEL_CANVAS"), None
         )
         if bmc_canvas:
             export_data = json.loads(bmc_canvas.blocks)
     
-    elif request.docType == "lean":
+    elif doc_type == "lean":
         lean_canvas = next(
             (c for c in canvases if c.canvasType == "LEAN_CANVAS"), None
         )
         if lean_canvas:
             export_data = json.loads(lean_canvas.blocks)
     
-    elif request.docType == "bp":
+    elif doc_type == "bp":
         if gen_doc.rawContent:
             export_data = json.loads(gen_doc.rawContent)
     
     # Generate export
     try:
         file_bytes = export_service.export_document(
-            doc_type=request.docType,
+            doc_type=doc_type,
             format_type=request.format,
             data=export_data,
             project_name=project.name
@@ -149,11 +152,12 @@ async def export_document(
         )
     
     # Create export record
+    download_url = f"/export/download/{project.id}"
     export_record = Export(
         docId=gen_doc.id,
         userId=current_user.id,
         format=request.format.upper(),
-        fileUrl="",  # Would be set to actual storage URL
+        fileUrl=download_url,
         fileSize=len(file_bytes)
     )
     db.add(export_record)
@@ -162,17 +166,20 @@ async def export_document(
     if subscription:
         subscription.exportsUsed += 1
     
-    await db.flush()
+    await db.commit()
+    await db.refresh(export_record)
     
     # Generate filename
-    filename = f"{project.name}_{request.docType}.{request.format}"
+    filename = f"{project.name}_{doc_type}.{request.format}"
+    file_url = f"/export/download/{export_record.id}"
     
     return ExportResponse(
         success=True,
         exportId=export_record.id,
         fileName=filename,
         format=request.format,
-        fileUrl=f"/export/download/{export_record.id}",
+        fileUrl=file_url,
+        url=file_url,
         fileSize=len(file_bytes),
         message="Export ready. Use the download endpoint to get the file."
     )

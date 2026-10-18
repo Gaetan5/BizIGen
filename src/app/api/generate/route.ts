@@ -216,11 +216,17 @@ GÉNÈRE UN BUSINESS PLAN COMPLET AU FORMAT JSON SUIVANT:
 }
 
 async function callBackendPython(projectId: string, type: string, userId: string) {
-  const response = await fetch('http://localhost:3001/generate', {
+  const backendBaseUrl = process.env.PYTHON_BACKEND_URL || 'http://localhost:3001';
+  const internalApiKey = process.env.INTERNAL_API_KEY;
+  if (!internalApiKey) {
+    throw new Error('La variable d\'environnement INTERNAL_API_KEY est requise.');
+  }
+
+  const response = await fetch(`${backendBaseUrl}/generate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Internal-API-Key': 'bizgen-internal-api-key-safe-for-dev',
+      'X-Internal-API-Key': internalApiKey,
       'X-User-Id': userId
     },
     body: JSON.stringify({ projectId, type })

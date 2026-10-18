@@ -45,6 +45,13 @@ class FinancialEngine:
             "net_profit": round(profit - tax_amount, 2)
         }
 
+    def calculate_break_even(self, fixed_costs: float, unit_price: float, unit_cost: float) -> float:
+        """Calculates break-even point in units"""
+        margin_per_unit = unit_price - unit_cost
+        if margin_per_unit <= 0:
+            return 0.0
+        return round(fixed_costs / margin_per_unit, 2)
+
     def validate_and_fix_bmc_finances(self, bmc_data: Dict[str, Any]) -> Dict[str, Any]:
         """Ensures cost and revenue consistency in the BMC"""
         try:

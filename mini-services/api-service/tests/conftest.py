@@ -77,7 +77,9 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     
     app.dependency_overrides[get_db] = override_get_db
     
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    from httpx import ASGITransport
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
     
     app.dependency_overrides.clear()
@@ -86,19 +88,26 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 @pytest_asyncio.fixture
 async def test_user(db_session: AsyncSession) -> User:
     """Create test user"""
-    from passlib.context import CryptContext
+    from app.routers.auth import hash_password
+    from app.models.models import Subscription
     
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    
+    user_password = os.getenv("TEST_USER_PASSWORD", "TestPassword123!")
     user = User(
         email="test@example.com",
         name="Test User",
-        passwordHash=pwd_context.hash("TestPassword123!"),
-        role="USER",
-        subscriptionPlan="FREE",
-        emailVerified=True
+        passwordHash=hash_password(user_password),
+        role="USER"
     )
     db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    
+    sub = Subscription(
+        userId=user.id,
+        plan="FREE",
+        status="ACTIVE"
+    )
+    db_session.add(sub)
     await db_session.commit()
     await db_session.refresh(user)
     return user
@@ -107,19 +116,27 @@ async def test_user(db_session: AsyncSession) -> User:
 @pytest_asyncio.fixture
 async def test_admin(db_session: AsyncSession) -> User:
     """Create test admin user"""
-    from passlib.context import CryptContext
+    from app.routers.auth import hash_password
+    from app.models.models import Subscription
     
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    admin_password = os.getenv("TEST_ADMIN_PASSWORD", "AdminPassword123!")
     
     admin = User(
         email="admin@example.com",
         name="Admin User",
-        passwordHash=pwd_context.hash("AdminPassword123!"),
-        role="ADMIN",
-        subscriptionPlan="PRO",
-        emailVerified=True
+        passwordHash=hash_password(admin_password),
+        role="ADMIN"
     )
     db_session.add(admin)
+    await db_session.commit()
+    await db_session.refresh(admin)
+    
+    sub = Subscription(
+        userId=admin.id,
+        plan="PRO",
+        status="ACTIVE"
+    )
+    db_session.add(sub)
     await db_session.commit()
     await db_session.refresh(admin)
     return admin
@@ -220,40 +237,69 @@ async def test_generated_doc(db_session: AsyncSession, test_project: Project) ->
 @pytest.fixture
 def mock_ai_service():
     """Mock AI service for testing"""
-    with patch("app.services.ai_service.ai_service") as mock:
-        mock.generate_bmc = AsyncMock(return_value={
-            "key_partners": ["Partner 1", "Partner 2"],
-            "key_activities": ["Activity 1"],
-            "key_resources": ["Resource 1"],
-            "value_propositions": ["Value 1"],
-            "customer_relationships": ["Relationship 1"],
-            "channels": ["Channel 1"],
-            "customer_segments": ["Segment 1"],
-            "cost_structure": {"fixed_costs": [], "variable_costs": []},
-            "revenue_streams": []
-        })
-        mock.generate_lean_canvas = AsyncMock(return_value={
-            "problem": ["Problem 1"],
-            "solution": ["Solution 1"],
-            "unique_value_proposition": "Unique value",
-            "unfair_advantage": "Advantage",
-            "customer_segments": ["Segment 1"],
-            "existing_alternatives": ["Alternative 1"],
-            "channels": ["Channel 1"],
-            "revenue_streams": ["Revenue 1"],
-            "cost_structure": ["Cost 1"],
-            "key_metrics": ["Metric 1"]
-        })
-        mock.generate_business_plan = AsyncMock(return_value={
-            "executive_summary": "Executive summary",
-            "company_overview": {"name": "Test Business"},
-            "market_analysis": {"target": "Local market"},
-            "products_services": {"main": "Product 1"},
-            "marketing_strategy": {"channels": []},
-            "operational_plan": {"team": []},
-            "financial_projections": {"revenue": []},
-            "risk_analysis": {"risks": []}
-        })
+    from app.schemas.ai_schemas import ValidatedAIResponse, AIResponseType
+
+    bmc_data = {
+        "key_partners": ["Partner 1", "Partner 2"],
+        "key_activities": ["Activity 1"],
+        "key_resources": ["Resource 1"],
+        "value_propositions": ["Value 1"],
+        "customer_relationships": ["Relationship 1"],
+        "channels": ["Channel 1"],
+        "customer_segments": ["Segment 1"],
+        "cost_structure": {"fixed_costs": [], "variable_costs": []},
+        "revenue_streams": []
+    }
+    lean_data = {
+        "problem": ["Problem 1"],
+        "solution": ["Solution 1"],
+        "unique_value_proposition": "Unique value",
+        "unfair_advantage": "Advantage",
+        "customer_segments": ["Segment 1"],
+        "existing_alternatives": ["Alternative 1"],
+        "channels": ["Channel 1"],
+        "revenue_streams": ["Revenue 1"],
+        "cost_structure": ["Cost 1"],
+        "key_metrics": ["Metric 1"]
+    }
+    bp_data = {
+        "executive_summary": "Executive summary",
+        "company_overview": {"name": "Test Business"},
+        "market_analysis": {"target": "Local market"},
+        "products_services": {"main": "Product 1"},
+        "marketing_strategy": {"channels": []},
+        "operational_plan": {"team": []},
+        "financial_projections": {"revenue": []},
+        "risk_analysis": {"risks": []}
+    }
+
+    with patch("app.services.ai_service.ai_service") as mock, \
+         patch("app.routers.generate.enhanced_ai_service") as mock_enhanced:
+        mock.generate_bmc = AsyncMock(return_value=bmc_data)
+        mock.generate_lean_canvas = AsyncMock(return_value=lean_data)
+        mock.generate_business_plan = AsyncMock(return_value=bp_data)
+
+        mock_enhanced.generate_bmc = AsyncMock(return_value=ValidatedAIResponse(
+            response_type=AIResponseType.BMC,
+            content=bmc_data,
+            is_valid=True,
+            model_used="gpt-4o-mini",
+            generation_time_ms=120.0
+        ))
+        mock_enhanced.generate_lean_canvas = AsyncMock(return_value=ValidatedAIResponse(
+            response_type=AIResponseType.LEAN_CANVAS,
+            content=lean_data,
+            is_valid=True,
+            model_used="gpt-4o-mini",
+            generation_time_ms=120.0
+        ))
+        mock_enhanced.generate_business_plan = AsyncMock(return_value=ValidatedAIResponse(
+            response_type=AIResponseType.BUSINESS_PLAN,
+            content=bp_data,
+            is_valid=True,
+            model_used="gpt-4o-mini",
+            generation_time_ms=120.0
+        ))
         yield mock
 
 

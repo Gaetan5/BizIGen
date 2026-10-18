@@ -63,12 +63,13 @@ class ExportService:
         self.export_dir.mkdir(exist_ok=True)
         self.image_handler = ImageHandler()
         
-    def generate_bmc_png(self, bmc_data: BMCResponse, project_name: str) -> bytes:
-        return self.image_handler.generate_bmc_png(bmc_data.model_dump(), project_name)
+    def generate_bmc_png(self, bmc_data: Any, project_name: str) -> bytes:
+        data_dict = bmc_data.model_dump() if hasattr(bmc_data, "model_dump") else bmc_data
+        return self.image_handler.generate_bmc_png(data_dict, project_name)
     
-    def generate_lean_canvas_png(self, lean_data: LeanCanvasResponse, project_name: str) -> bytes:
-        # On délègue ou on garde temporairement si pas encore déplacé
-        return self.image_handler.generate_bmc_png(lean_data.model_dump(), project_name) # Mock
+    def generate_lean_canvas_png(self, lean_data: Any, project_name: str) -> bytes:
+        data_dict = lean_data.model_dump() if hasattr(lean_data, "model_dump") else lean_data
+        return self.image_handler.generate_bmc_png(data_dict, project_name) # Mock
 
     # ============================================
     # PNG GENERATION - CANVAS

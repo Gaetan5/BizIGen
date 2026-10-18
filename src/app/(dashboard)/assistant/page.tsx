@@ -71,6 +71,78 @@ const FEATURES = [
   { icon: Clock, title: '24/7', description: 'Toujours disponible' },
 ];
 
+interface SidebarContentProps {
+  conversations: Conversation[];
+  currentConversationId: string | null;
+  createNewConversation: () => void;
+  selectConversation: (conversation: Conversation) => void;
+  deleteConversation: (id: string, e: React.MouseEvent) => void;
+}
+
+function SidebarContent({
+  conversations,
+  currentConversationId,
+  createNewConversation,
+  selectConversation,
+  deleteConversation,
+}: SidebarContentProps) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b">
+        <Button
+          onClick={createNewConversation}
+          className="w-full gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500"
+        >
+          <Plus className="h-4 w-4" />
+          Nouvelle conversation
+        </Button>
+      </div>
+
+      <ScrollArea className="flex-1">
+        <div className="p-2 space-y-1">
+          {conversations.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>Aucune conversation</p>
+              <p className="text-xs mt-1">Commencez à discuter !</p>
+            </div>
+          ) : (
+            conversations.map((conversation) => (
+              <motion.button
+                key={conversation.id}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => selectConversation(conversation)}
+                className={cn(
+                  'w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all',
+                  'hover:bg-muted/50',
+                  currentConversationId === conversation.id && 'bg-violet-500/10 border border-violet-500/20'
+                )}
+              >
+                <MessageSquare className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{conversation.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {conversation.messages.length - 1} messages
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                  onClick={(e) => deleteConversation(conversation.id, e)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </motion.button>
+            ))
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
+
 export default function AssistantPage() {
   const { data: session } = useSession();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -79,18 +151,9 @@ export default function AssistantPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSidebar, setShowSidebar] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Check if mobile
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -99,15 +162,18 @@ export default function AssistantPage() {
 
   // Load conversations from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('bizgen_conversations');
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('bizgen_conversations') : null;
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setConversations(parsed.map((c: Conversation) => ({
-          ...c,
-          createdAt: new Date(c.createdAt),
-          updatedAt: new Date(c.updatedAt),
-        })));
+        const timer = setTimeout(() => {
+          setConversations(parsed.map((c: Conversation) => ({
+            ...c,
+            createdAt: new Date(c.createdAt),
+            updatedAt: new Date(c.updatedAt),
+          })));
+        }, 0);
+        return () => clearTimeout(timer);
       } catch (e) {
         console.error('Failed to load conversations:', e);
       }
@@ -247,68 +313,17 @@ export default function AssistantPage() {
     handleSend(suggestion);
   };
 
-  // Sidebar content
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b">
-        <Button
-          onClick={createNewConversation}
-          className="w-full gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500"
-        >
-          <Plus className="h-4 w-4" />
-          Nouvelle conversation
-        </Button>
-      </div>
-
-      <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
-          {conversations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>Aucune conversation</p>
-              <p className="text-xs mt-1">Commencez à discuter !</p>
-            </div>
-          ) : (
-            conversations.map((conversation) => (
-              <motion.button
-                key={conversation.id}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                onClick={() => selectConversation(conversation)}
-                className={cn(
-                  'w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all',
-                  'hover:bg-muted/50',
-                  currentConversationId === conversation.id && 'bg-violet-500/10 border border-violet-500/20'
-                )}
-              >
-                <MessageSquare className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{conversation.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {conversation.messages.length - 1} messages
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                  onClick={(e) => deleteConversation(conversation.id, e)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </motion.button>
-            ))
-          )}
-        </div>
-      </ScrollArea>
-    </div>
-  );
-
   return (
     <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex w-72 border-r bg-muted/30 flex-col">
-        <SidebarContent />
+        <SidebarContent
+          conversations={conversations}
+          currentConversationId={currentConversationId}
+          createNewConversation={createNewConversation}
+          selectConversation={selectConversation}
+          deleteConversation={deleteConversation}
+        />
       </aside>
 
       {/* Main Chat Area */}
@@ -324,7 +339,13 @@ export default function AssistantPage() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-80">
-                <SidebarContent />
+                <SidebarContent
+                  conversations={conversations}
+                  currentConversationId={currentConversationId}
+                  createNewConversation={createNewConversation}
+                  selectConversation={selectConversation}
+                  deleteConversation={deleteConversation}
+                />
               </SheetContent>
             </Sheet>
 
