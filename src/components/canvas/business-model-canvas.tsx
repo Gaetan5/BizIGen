@@ -163,7 +163,31 @@ export function BusinessModelCanvas({ blocks, editable = false, onUpdate }: Busi
   const renderCostBlock = () => {
     const config = blockConfig.cost_structure;
     const Icon = config.icon;
-    const costData = blocks.cost_structure;
+    const costData: any = blocks.cost_structure || {};
+
+    // Si cost_structure est un tableau de chaînes simple
+    if (Array.isArray(costData)) {
+      return (
+        <Card className={`${config.color} border h-full`}>
+          <CardHeader className="py-3 px-4">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Icon className="w-4 h-4" />
+              {config.label}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="py-2 px-4 space-y-2">
+            {costData.map((item: any, i: number) => (
+              <div key={i} className="text-sm bg-background/50 rounded px-2 py-1">
+                {typeof item === 'string' ? item : item?.item || JSON.stringify(item)}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      );
+    }
+
+    const fixedCosts = Array.isArray(costData.fixed_costs) ? costData.fixed_costs : [];
+    const variableCosts = Array.isArray(costData.variable_costs) ? costData.variable_costs : [];
 
     return (
       <Card className={`${config.color} border h-full`}>
@@ -178,30 +202,40 @@ export function BusinessModelCanvas({ blocks, editable = false, onUpdate }: Busi
             <div>
               <h4 className="text-xs font-medium mb-2">Coûts Fixes</h4>
               <div className="space-y-1">
-                {costData.fixed_costs?.map((cost, i) => (
-                  <div key={i} className="flex justify-between text-sm bg-background/50 rounded px-2 py-1">
-                    <span>{cost.item}</span>
-                    <span className="font-medium">{cost.amount} {cost.currency}</span>
-                  </div>
-                ))}
+                {fixedCosts.length > 0 ? (
+                  fixedCosts.map((cost: any, i: number) => (
+                    <div key={i} className="flex justify-between text-sm bg-background/50 rounded px-2 py-1">
+                      <span>{cost.item || cost}</span>
+                      <span className="font-medium">{cost.amount ? `${cost.amount} ${cost.currency || ''}` : ''}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground">{costData.fixed || 'Non spécifié'}</p>
+                )}
               </div>
             </div>
             <div>
               <h4 className="text-xs font-medium mb-2">Coûts Variables</h4>
               <div className="space-y-1">
-                {costData.variable_costs?.map((cost, i) => (
-                  <div key={i} className="flex justify-between text-sm bg-background/50 rounded px-2 py-1">
-                    <span>{cost.item}</span>
-                    <span className="font-medium">{cost.percentage}%</span>
-                  </div>
-                ))}
+                {variableCosts.length > 0 ? (
+                  variableCosts.map((cost: any, i: number) => (
+                    <div key={i} className="flex justify-between text-sm bg-background/50 rounded px-2 py-1">
+                      <span>{cost.item || cost}</span>
+                      <span className="font-medium">{cost.percentage ? `${cost.percentage}%` : ''}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground">{costData.variable || 'Non spécifié'}</p>
+                )}
               </div>
             </div>
           </div>
-          <div className="mt-3 pt-2 border-t flex justify-between font-medium">
-            <span>Estimation mensuelle totale</span>
-            <span className="text-primary">{costData.total_monthly_estimate}</span>
-          </div>
+          {costData.total_monthly_estimate && (
+            <div className="mt-3 pt-2 border-t flex justify-between font-medium">
+              <span>Estimation mensuelle totale</span>
+              <span className="text-primary">{costData.total_monthly_estimate}</span>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -210,7 +244,7 @@ export function BusinessModelCanvas({ blocks, editable = false, onUpdate }: Busi
   const renderRevenueBlock = () => {
     const config = blockConfig.revenue_streams;
     const Icon = config.icon;
-    const revenueData = blocks.revenue_streams;
+    const revenueData: any = blocks.revenue_streams;
 
     return (
       <Card className={`${config.color} border h-full`}>
@@ -222,15 +256,31 @@ export function BusinessModelCanvas({ blocks, editable = false, onUpdate }: Busi
         </CardHeader>
         <CardContent className="py-2 px-4">
           <div className="space-y-2">
-            {revenueData?.map((stream, i) => (
-              <div key={i} className="bg-background/50 rounded px-2 py-1.5">
-                <div className="font-medium text-sm">{stream.source}</div>
-                <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>{stream.model}</span>
-                  <span>{stream.pricing}</span>
+            {Array.isArray(revenueData) ? (
+              revenueData.map((stream: any, i: number) => (
+                <div key={i} className="bg-background/50 rounded px-2 py-1.5">
+                  {typeof stream === 'string' ? (
+                    <div className="text-sm">{stream}</div>
+                  ) : (
+                    <>
+                      <div className="font-medium text-sm">{stream.source || stream.model || 'Source de revenus'}</div>
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>{stream.model || ''}</span>
+                        <span>{stream.pricing || ''}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
+              ))
+            ) : revenueData && typeof revenueData === 'object' ? (
+              <div className="bg-background/50 rounded p-2 text-sm space-y-1">
+                {revenueData.model && <div><span className="font-medium">Modèle :</span> {revenueData.model}</div>}
+                {revenueData.pricing && <div><span className="font-medium">Prix :</span> {revenueData.pricing}</div>}
+                {revenueData.break_even && <div><span className="font-medium">Seuil de rentabilité :</span> {revenueData.break_even}</div>}
               </div>
-            ))}
+            ) : (
+              <p className="text-xs text-muted-foreground">Aucune source de revenus spécifiée</p>
+            )}
           </div>
         </CardContent>
       </Card>
