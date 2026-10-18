@@ -34,6 +34,11 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/generate", tags=["AI Generation"])
 
+def to_dict(obj: Any) -> Any:
+    if hasattr(obj, "model_dump"):
+        return obj.model_dump()
+    return obj
+
 
 # ============================================
 # SCHEMAS
@@ -175,7 +180,8 @@ async def generate_documents(
                 )
                 
                 if validated.is_valid:
-                    results["bmc"] = validated.content
+                    bmc_dict = to_dict(validated.content)
+                    results["bmc"] = bmc_dict
                     last_model_used = validated.model_used
                     total_time_ms += validated.generation_time_ms or 0
                     
@@ -189,13 +195,13 @@ async def generate_documents(
                     existing_canvas = result.scalar_one_or_none()
                     
                     if existing_canvas:
-                        existing_canvas.blocks = json.dumps(validated.content, ensure_ascii=False)
+                        existing_canvas.blocks = json.dumps(bmc_dict, ensure_ascii=False)
                         existing_canvas.updatedAt = datetime.utcnow()
                     else:
                         canvas = CanvasData(
                             docId=gen_doc.id,
                             canvasType="BUSINESS_MODEL_CANVAS",
-                            blocks=json.dumps(validated.content, ensure_ascii=False)
+                            blocks=json.dumps(bmc_dict, ensure_ascii=False)
                         )
                         db.add(canvas)
                     
@@ -222,7 +228,8 @@ async def generate_documents(
                 )
                 
                 if validated.is_valid:
-                    results["lean"] = validated.content
+                    lean_dict = to_dict(validated.content)
+                    results["lean"] = lean_dict
                     last_model_used = validated.model_used
                     total_time_ms += validated.generation_time_ms or 0
                     
@@ -236,13 +243,13 @@ async def generate_documents(
                     existing_canvas = result.scalar_one_or_none()
                     
                     if existing_canvas:
-                        existing_canvas.blocks = json.dumps(validated.content, ensure_ascii=False)
+                        existing_canvas.blocks = json.dumps(lean_dict, ensure_ascii=False)
                         existing_canvas.updatedAt = datetime.utcnow()
                     else:
                         canvas = CanvasData(
                             docId=gen_doc.id,
                             canvasType="LEAN_CANVAS",
-                            blocks=json.dumps(validated.content, ensure_ascii=False)
+                            blocks=json.dumps(lean_dict, ensure_ascii=False)
                         )
                         db.add(canvas)
                     
@@ -266,10 +273,11 @@ async def generate_documents(
                 )
                 
                 if validated.is_valid:
-                    results["bp"] = validated.content
+                    bp_dict = to_dict(validated.content)
+                    results["bp"] = bp_dict
                     last_model_used = validated.model_used
                     total_time_ms += validated.generation_time_ms or 0
-                    gen_doc.rawContent = json.dumps(validated.content, ensure_ascii=False)
+                    gen_doc.rawContent = json.dumps(bp_dict, ensure_ascii=False)
                     logger.info(f"Business Plan generated successfully (model: {validated.model_used})")
                     
                     # 1. RUN STRATEGIC AUDIT (Expert Feature)

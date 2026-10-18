@@ -131,14 +131,26 @@ export function ProjectPageContent({ id }: { id: string }) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
 
-      // Génération côté client à partir des données canvas retournées par l'API (C2 fix)
+      // Téléchargement direct depuis le backend haute fidélité si disponible
+      if (data.downloadUrl) {
+        const link = document.createElement('a');
+        link.href = data.downloadUrl;
+        link.download = data.fileName || `${data.projectName || 'document'}.${format}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success(`Export ${format.toUpperCase()} téléchargé avec succès !`);
+        return;
+      }
+
+      // Génération côté client de secours si nécessaire
       if (data.canvasData || data.businessPlanData) {
         if (format === 'pdf') {
           await generatePDF(data, activeTab);
         } else if (format === 'png') {
           await generatePNG(data, activeTab);
         } else {
-          toast.info('Export DOCX disponible prochainement.');
+          toast.info('Export DOCX indisponible pour le moment.');
         }
       } else {
         toast.error('Aucune donnée disponible pour l\'export.');

@@ -93,41 +93,78 @@ export async function POST(request: NextRequest) {
     const rawContent = (project.generatedDoc as { rawContent?: string | null }).rawContent;
     const businessPlanData = rawContent ? JSON.parse(rawContent) : null;
 
-    // Generate export record
-    const exportRecord = await db.export.create({
-      data: {
-        docId: project.generatedDoc.id,
-        userId: session.user.id,
-        format: format.toUpperCase() as 'PDF' | 'PNG' | 'DOCX',
-        fileUrl: `/exports/${project.id}-${type}-${Date.now()}.${format}`,
-        fileSize: 0,
-      },
-    });
+    let exportId = '';
+    let downloadUrl: string | null = null;
+    const fileName = `${type === 'bmc' ? 'Business_Model_Canvas' : type === 'lean' ? 'Lean_Canvas' : 'Business_Plan'}_${project.name.replace(/\s+/g, '_')}.${format}`;
 
-    // Update subscription usage
-    if (subscription) {
-      await db.subscription.update({
-        where: { userId: session.user.id },
-        data: { exportsUsed: { increment: 1 } },
-      });
+    // Tentative d'export via le backend Python ReportLab / python-docx pour PDF et DOCX
+    if (format === 'pdf' || format === 'docx') {
+      try {
+        const backendBaseUrl = process.env.PYTHON_BACKEND_URL || 'http://localhost:3001';
+        const internalApiKey = process.env.INTERNAL_API_KEY;
+
+        if (internalApiKey) {
+          const backendRes = await fetch(`${backendBaseUrl}/export`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Internal-API-Key': internalApiKey,
+              'X-User-Id': session.user.id,
+            },
+            body: JSON.stringify({
+              projectId: project.id,
+              type,
+              format,
+            }),
+          });
+
+          if (backendRes.ok) {
+            const backendData = await backendRes.json();
+            if (backendData.exportId) {
+              exportId = backendData.exportId;
+              downloadUrl = `/api/export/download/${exportId}?type=${type}&format=${format}`;
+            }
+          } else {
+            console.warn('Backend export call failed, falling back to local export record:', await backendRes.text());
+          }
+        }
+      } catch (err) {
+        console.warn('Backend Python export unreachable, fallback to client-side:', err);
+      }
     }
 
-    // For demo purposes, return a mock URL
-    // In production, you would generate the actual file
-    const fileName = `${type === 'bmc' ? 'Business_Model_Canvas' : type === 'lean' ? 'Lean_Canvas' : 'Business_Plan'}_${project.name.replace(/\s+/g, '_')}.${format}`;
-    
-    // Return export info with canvas data for client-side generation
+    // Si pas de backend Python ou si format PNG, enregistrement local Prisma
+    if (!exportId) {
+      const exportRecord = await db.export.create({
+        data: {
+          docId: project.generatedDoc.id,
+          userId: session.user.id,
+          format: format.toUpperCase() as 'PDF' | 'PNG' | 'DOCX',
+          fileUrl: `/exports/${project.id}-${type}-${Date.now()}.${format}`,
+          fileSize: 0,
+        },
+      });
+      exportId = exportRecord.id;
+
+      if (subscription) {
+        await db.subscription.update({
+          where: { userId: session.user.id },
+          data: { exportsUsed: { increment: 1 } },
+        });
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      exportId: exportRecord.id,
+      exportId,
       fileName,
       format,
+      downloadUrl,
       canvasData: canvasData ? JSON.parse(canvasData.blocks) : null,
       businessPlanData,
       projectName: project.name,
-      // In production, this would be a real file URL
-      url: `#export-${exportRecord.id}`,
-      message: 'Export ready. Download will start automatically.',
+      url: downloadUrl || `#export-${exportId}`,
+      message: 'Export prêt. Le téléchargement va démarrer.',
     });
   } catch (error) {
     console.error('Export error:', error);

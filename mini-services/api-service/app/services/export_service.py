@@ -719,7 +719,10 @@ class ExportService:
                     story.append(Paragraph("Jalons", heading2_style))
                     milestone_data = [["Jalon", "Date"]]
                     for m in operations["milestones"]:
-                        milestone_data.append([str(m.get("name", m)), str(m.get("date", ""))])
+                        if isinstance(m, dict):
+                            milestone_data.append([str(m.get("name", m.get("milestone", ""))), str(m.get("date", "-"))])
+                        else:
+                            milestone_data.append([str(m), "-"])
                     
                     if len(milestone_data) > 1:
                         m_table = Table(milestone_data, colWidths=[12*cm, 4*cm])

@@ -35,6 +35,7 @@ from app.schemas.ai_schemas import (
 from app.services.sector_expertise import sector_expertise
 from app.services.knowledge_service import knowledge_service
 from app.services.financial_engine import financial_engine
+from app.services.smart_fallback_service import smart_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -469,9 +470,10 @@ class EnhancedAIService:
         response_type: AIResponseType,
         cache_key: Optional[str] = None,
         model_config: Optional[ModelConfig] = None,
+        context: Optional[Dict[str, Any]] = None,
     ) -> ValidatedAIResponse:
         """
-        Generate and validate AI response with caching
+        Generate and validate AI response with caching and smart deterministic fallback
         """
         config = model_config or MODEL_CONFIGS.get(response_type.value, MODEL_CONFIGS["default"])
         
@@ -547,11 +549,30 @@ class EnhancedAIService:
                 raise e
             except Exception as e:
                 last_error = e
-                logger.error(f"Unexpected error with model {model}: {e}")
+                logger.error(f"Error with model {model}: {e}")
                 continue
         
-        # All models failed
-        raise AIServiceError(f"All models failed. Last error: {last_error}")
+        # All LLM models failed or API key unconfigured -> Trigger Smart Fallback Engine
+        logger.warning(f"All LLMs unavailable ({last_error}). Triggering Smart Fallback Engine.")
+        ctx = context or {}
+        form_data = ctx.get("form_data", {})
+        sector = ctx.get("sector", "TECH")
+        country = ctx.get("country", "CM")
+
+        if response_type == AIResponseType.BMC:
+            fallback_content = smart_fallback.build_bmc(form_data, sector, country)
+        elif response_type == AIResponseType.LEAN_CANVAS:
+            fallback_content = smart_fallback.build_lean_canvas(form_data, sector, country)
+        elif response_type == AIResponseType.BUSINESS_PLAN:
+            fallback_content = smart_fallback.build_business_plan(form_data, sector, country)
+        else:
+            raise AIServiceError(f"All models failed. Last error: {last_error}")
+
+        validated = validate_ai_response(response_type, fallback_content)
+        validated.model_used = "smart-expert-engine"
+        validated.generation_time_ms = 45.0
+        validated.raw_response = json.dumps(fallback_content, ensure_ascii=False)
+        return validated
     
     def _fix_common_issues(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -674,6 +695,7 @@ GÉNÈRE UN BUSINESS MODEL CANVAS COMPLET AU FORMAT JSON DEMANDÉ EN TE BASANT E
             user_prompt=user_prompt,
             response_type=AIResponseType.BMC,
             cache_key=cache_key,
+            context={"form_data": form_data, "sector": sector, "country": country},
         )
         
         # FIX FINANCES (Expert Step)
@@ -739,6 +761,7 @@ GÉNÈRE UN LEAN CANVAS COMPLET AU FORMAT JSON EN TE BASANT SUR LES BALISES <ent
             user_prompt=user_prompt,
             response_type=AIResponseType.LEAN_CANVAS,
             cache_key=cache_key,
+            context={"form_data": form_data, "sector": sector, "country": ""},
         )
     
     async def generate_business_plan(
@@ -823,6 +846,7 @@ GÉNÈRE UN BUSINESS PLAN COMPLET AU FORMAT JSON PROFESSIONNEL.
             response_type=AIResponseType.BUSINESS_PLAN,
             cache_key=cache_key,
             model_config=config,
+            context={"form_data": form_data, "sector": sector, "country": country},
         )
     
     async def chat(

@@ -151,13 +151,12 @@ async def export_document(
             detail=str(e)
         )
     
-    # Create export record
-    download_url = f"/export/download/{project.id}"
+    # Generate export record
     export_record = Export(
         docId=gen_doc.id,
         userId=current_user.id,
         format=request.format.upper(),
-        fileUrl=download_url,
+        fileUrl=f"/export/download/{doc_type}",
         fileSize=len(file_bytes)
     )
     db.add(export_record)
@@ -169,9 +168,11 @@ async def export_document(
     await db.commit()
     await db.refresh(export_record)
     
-    # Generate filename
+    # Generate filename and download URL with type
     filename = f"{project.name}_{doc_type}.{request.format}"
-    file_url = f"/export/download/{export_record.id}"
+    file_url = f"/export/download/{export_record.id}?type={doc_type}"
+    export_record.fileUrl = file_url
+    await db.commit()
     
     return ExportResponse(
         success=True,
@@ -188,6 +189,7 @@ async def export_document(
 @router.get("/download/{export_id}")
 async def download_export(
     export_id: str,
+    type: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -232,17 +234,26 @@ async def download_export(
     )
     canvases = result.scalars().all()
     
-    # Re-generate file
-    export_data = {}
-    doc_type = "bmc"
+    # Determine doc_type
+    doc_type = (type or "").lower()
+    if not doc_type and export_record.fileUrl and "?type=" in export_record.fileUrl:
+        doc_type = export_record.fileUrl.split("?type=")[-1].split("&")[0].lower()
+    if not doc_type:
+        doc_type = "bmc"
     
-    if gen_doc.rawContent:
+    export_data = {}
+    if doc_type == "bp" and gen_doc.rawContent:
         export_data = json.loads(gen_doc.rawContent)
-        doc_type = "bp"
-    elif canvases:
-        c = canvases[0]
-        export_data = json.loads(c.blocks) if c.blocks else {}
-        doc_type = "bmc" if c.canvasType == "BUSINESS_MODEL_CANVAS" else "lean"
+    elif doc_type == "lean":
+        lean_canvas = next((c for c in canvases if c.canvasType == "LEAN_CANVAS"), None)
+        if lean_canvas and lean_canvas.blocks:
+            export_data = json.loads(lean_canvas.blocks)
+    else:  # bmc
+        bmc_canvas = next((c for c in canvases if c.canvasType == "BUSINESS_MODEL_CANVAS"), None)
+        if bmc_canvas and bmc_canvas.blocks:
+            export_data = json.loads(bmc_canvas.blocks)
+        elif canvases and canvases[0].blocks:
+            export_data = json.loads(canvases[0].blocks)
     
     file_bytes = export_service.export_document(
         doc_type=doc_type,
