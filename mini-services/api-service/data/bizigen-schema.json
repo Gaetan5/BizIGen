@@ -1,0 +1,320 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "bizigen/archetype.schema.json",
+  "title": "BizIGen - Archetype de business",
+  "description": "Un archetype relie en un seul objet : BMC, Lean Canvas, Business Plan, contexte local, benchmarks et hypotheses a valider. Toute donnee chiffree est une hypothese avec niveau de confiance.",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "meta",
+    "idee",
+    "bmc",
+    "lean_canvas",
+    "business_plan",
+    "contexte_local",
+    "benchmarks",
+    "hypotheses_a_valider"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "version": {
+      "type": "string"
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "secteur",
+        "sous_secteur",
+        "modele_revenus",
+        "type_clientele",
+        "pays_cibles",
+        "maturite_marche"
+      ],
+      "properties": {
+        "secteur": {
+          "type": "string"
+        },
+        "sous_secteur": {
+          "type": "string"
+        },
+        "modele_revenus": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "commission",
+              "abonnement",
+              "vente_directe",
+              "marketplace",
+              "freemium",
+              "licence",
+              "publicite",
+              "service_facture"
+            ]
+          }
+        },
+        "type_clientele": {
+          "enum": [
+            "B2C",
+            "B2B",
+            "B2B2C",
+            "B2G"
+          ]
+        },
+        "pays_cibles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "maturite_marche": {
+          "enum": [
+            "emergent",
+            "en_croissance",
+            "mature"
+          ]
+        },
+        "mots_cles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "idee": {
+      "type": "object",
+      "required": [
+        "resume",
+        "probleme",
+        "solution"
+      ],
+      "properties": {
+        "resume": {
+          "type": "string"
+        },
+        "probleme": {
+          "type": "string"
+        },
+        "solution": {
+          "type": "string"
+        }
+      }
+    },
+    "bmc": {
+      "type": "object",
+      "required": [
+        "segments_clients",
+        "proposition_valeur",
+        "canaux",
+        "relation_clients",
+        "sources_revenus",
+        "ressources_cles",
+        "activites_cles",
+        "partenaires_cles",
+        "structure_couts"
+      ],
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      }
+    },
+    "lean_canvas": {
+      "type": "object",
+      "required": [
+        "probleme",
+        "segments_clients",
+        "proposition_valeur_unique",
+        "solution",
+        "canaux",
+        "flux_revenus",
+        "structure_couts",
+        "indicateurs_cles",
+        "avantage_concurrentiel"
+      ],
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      }
+    },
+    "business_plan": {
+      "type": "object",
+      "required": [
+        "resume_executif",
+        "marche",
+        "strategie_marketing",
+        "operations",
+        "equipe",
+        "financier",
+        "risques",
+        "kpis",
+        "plan_30_60_90"
+      ],
+      "properties": {
+        "resume_executif": {
+          "type": "string"
+        },
+        "marche": {
+          "type": "object",
+          "properties": {
+            "tam_description": {
+              "type": "string"
+            },
+            "sam_description": {
+              "type": "string"
+            },
+            "som_description": {
+              "type": "string"
+            },
+            "concurrents_types": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "tendances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "strategie_marketing": {
+          "type": "object"
+        },
+        "operations": {
+          "type": "object"
+        },
+        "equipe": {
+          "type": "object"
+        },
+        "financier": {
+          "type": "object",
+          "required": [
+            "devise",
+            "unit_economics",
+            "projection_3_ans",
+            "seuil_rentabilite",
+            "besoin_financement"
+          ],
+          "properties": {
+            "devise": {
+              "const": "XAF"
+            },
+            "statut_donnees": {
+              "const": "illustratif - a recalibrer avec les donnees de l'entrepreneur"
+            }
+          }
+        },
+        "risques": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "risque",
+              "probabilite",
+              "impact",
+              "mitigation"
+            ]
+          }
+        },
+        "kpis": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "plan_30_60_90": {
+          "type": "object",
+          "required": [
+            "j30",
+            "j60",
+            "j90"
+          ]
+        }
+      }
+    },
+    "contexte_local": {
+      "type": "object",
+      "properties": {
+        "paiement": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "juridique_fiscal": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "infrastructure": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "appuis_possibles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "benchmarks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "metrique",
+          "valeur_indicative",
+          "source",
+          "confiance"
+        ],
+        "properties": {
+          "metrique": {
+            "type": "string"
+          },
+          "valeur_indicative": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "confiance": {
+            "enum": [
+              "faible",
+              "moyenne",
+              "elevee"
+            ]
+          }
+        }
+      }
+    },
+    "hypotheses_a_valider": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 3
+    },
+    "tests_de_validation": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

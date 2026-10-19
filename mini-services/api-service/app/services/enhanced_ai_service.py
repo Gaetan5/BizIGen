@@ -34,6 +34,7 @@ from app.schemas.ai_schemas import (
 )
 from app.services.sector_expertise import sector_expertise
 from app.services.knowledge_service import knowledge_service
+from app.services.archetype_service import archetype_service
 from app.services.financial_engine import financial_engine
 from app.services.smart_fallback_service import smart_fallback
 
@@ -659,15 +660,23 @@ Le JSON doit avoir exactement cette structure:
   "revenue_streams": [{"source": "...", "model": "...", "pricing": "..."}]
 }"""
         
-        # Inject Sector Expertise
+        # Inject Sector Expertise & Archetype Benchmarks
         expertise = sector_expertise.get_expertise(sector)
+        archetype_context = archetype_service.get_archetype_enrichment(
+            sector=sector,
+            description=form_data.get("description", ""),
+            revenue_model=form_data.get("revenue_model"),
+            client_type=form_data.get("customer_segment")
+        )
         system_prompt += (
             f"\n\nEXPERTISE SECTORIELLE ({sector.upper()}) :\n"
             f"{expertise.get('expert_prompt', '')}\n"
             f"Facteurs critiques du secteur : {', '.join(expertise.get('critical_factors', []))}\n"
-            f"KPIs standards à refléter : {', '.join(expertise.get('typical_kpis', []))}\n\n"
-            "RÈGLE D'OR : Chaque bloc du Business Model Canvas doit être STRICTEMENT personnalisé en fonction des informations fournies par l'entrepreneur, de son secteur spécifique et de son pays d'implantation. N'invente aucun élément générique hors-sol."
+            f"KPIs standards à refléter : {', '.join(expertise.get('typical_kpis', []))}\n"
         )
+        if archetype_context:
+            system_prompt += f"\n\nDONNÉES MARCHÉ ET BENCHMARKS CONCRETS :\n{archetype_context}\n"
+        system_prompt += "\nRÈGLE D'OR : Chaque bloc du Business Model Canvas doit être STRICTEMENT personnalisé en fonction des informations fournies par l'entrepreneur, de son secteur spécifique et de son pays d'implantation. N'invente aucun élément générique hors-sol."
         
         # Sanitize and wrap user inputs to prevent prompt injection
         def sanitize(text: Any) -> str:
@@ -762,14 +771,22 @@ RÈGLES:
 
 Tu DOIS répondre UNIQUEMENT avec un JSON valide au format demandé."""
         
-        # Inject Sector Expertise
+        # Inject Sector Expertise & Archetype Benchmarks
         expertise = sector_expertise.get_expertise(sector)
+        archetype_context = archetype_service.get_archetype_enrichment(
+            sector=sector,
+            description=form_data.get("description", ""),
+            revenue_model=form_data.get("revenue_model"),
+            client_type=form_data.get("customer_segment")
+        )
         system_prompt += (
             f"\n\nEXPERTISE SECTORIELLE ({sector.upper()}) :\n"
             f"{expertise.get('expert_prompt', '')}\n"
             f"Facteurs critiques du secteur : {', '.join(expertise.get('critical_factors', []))}\n"
             f"KPIs recommandés : {', '.join(expertise.get('typical_kpis', []))}"
         )
+        if archetype_context:
+            system_prompt += f"\n\nDONNÉES MARCHÉ ET BENCHMARKS CONCRETS :\n{archetype_context}\n"
         
         # Sanitize user inputs
         def sanitize(text: Any) -> str:
@@ -830,6 +847,12 @@ Tu DOIS répondre UNIQUEMENT avec un JSON valide, sans texte avant ou après."""
         # Inject Sector Expertise, Local Knowledge & Real Competitors
         expertise = sector_expertise.get_expertise(sector)
         local_context = knowledge_service.get_context_for_sector(sector)
+        archetype_context = archetype_service.get_archetype_enrichment(
+            sector=sector,
+            description=form_data.get("description", ""),
+            revenue_model=form_data.get("revenue_model"),
+            client_type=form_data.get("customer_segment")
+        )
         
         # Expert Step: Discover real competitors
         from app.services.competitor_discovery import competitor_discovery
@@ -840,6 +863,8 @@ Tu DOIS répondre UNIQUEMENT avec un JSON valide, sans texte avant ou après."""
             f"Facteurs critiques du secteur : {', '.join(expertise.get('critical_factors', []))}\n"
             f"KPIs standards recommandés : {', '.join(expertise.get('typical_kpis', []))}"
         )
+        if archetype_context:
+            system_prompt += f"\n\nDONNÉES ARCHÉTYPE & BENCHMARKS DE RÉFÉRENCE :\n{archetype_context}"
         if local_context:
             system_prompt += f"\n\nDONNÉES DE RÉFÉRENCE MARCHÉ (UTILISE CES FAITS RÉELS) :\n{local_context}"
         

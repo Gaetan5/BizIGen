@@ -1,0 +1,308 @@
+{
+  "version": "0.1",
+  "questions": [
+    {
+      "id": "q01",
+      "bloc": "idee",
+      "question": "Decrivez votre idee en deux phrases.",
+      "type": "texte_long",
+      "alimente": [
+        "idee.resume"
+      ]
+    },
+    {
+      "id": "q02",
+      "bloc": "probleme",
+      "question": "Quel probleme precis resolvez-vous, et pour qui ?",
+      "type": "texte_long",
+      "alimente": [
+        "lean_canvas.probleme",
+        "bmc.segments_clients"
+      ]
+    },
+    {
+      "id": "q03",
+      "bloc": "probleme",
+      "question": "Comment ce probleme est-il resolu aujourd'hui, et pourquoi n'est-ce pas satisfaisant ?",
+      "type": "texte_long",
+      "alimente": [
+        "business_plan.marche.concurrents_types"
+      ]
+    },
+    {
+      "id": "q04",
+      "bloc": "client",
+      "question": "Combien de personnes de votre cible avez-vous deja interrogees ?",
+      "type": "nombre",
+      "alimente": [
+        "scoring.validation_client"
+      ]
+    },
+    {
+      "id": "q05",
+      "bloc": "client",
+      "question": "Qui paie : l'utilisateur final ou une autre personne (parent, employeur, commerçant) ?",
+      "type": "choix_unique",
+      "alimente": [
+        "meta.type_clientele"
+      ]
+    },
+    {
+      "id": "q06",
+      "bloc": "solution",
+      "question": "Quelles sont les 3 fonctions indispensables de votre premiere version ?",
+      "type": "liste",
+      "alimente": [
+        "lean_canvas.solution"
+      ]
+    },
+    {
+      "id": "q07",
+      "bloc": "valeur",
+      "question": "Pourquoi un client vous choisirait-il plutot que l'alternative actuelle ?",
+      "type": "texte_long",
+      "alimente": [
+        "lean_canvas.proposition_valeur_unique"
+      ]
+    },
+    {
+      "id": "q08",
+      "bloc": "revenus",
+      "question": "Comment gagnez-vous de l'argent ?",
+      "type": "choix_multiple",
+      "alimente": [
+        "meta.modele_revenus",
+        "bmc.sources_revenus"
+      ]
+    },
+    {
+      "id": "q09",
+      "bloc": "revenus",
+      "question": "Quel prix envisagez-vous, et sur quelle base l'avez-vous fixe ?",
+      "type": "texte_court",
+      "alimente": [
+        "financier.unit_economics.prix_moyen_xaf"
+      ]
+    },
+    {
+      "id": "q10",
+      "bloc": "couts",
+      "question": "Quels sont vos 5 principaux couts ?",
+      "type": "liste",
+      "alimente": [
+        "bmc.structure_couts"
+      ]
+    },
+    {
+      "id": "q11",
+      "bloc": "couts",
+      "question": "Combien coute, a peu pres, chaque vente ou service rendu (hors frais fixes) ?",
+      "type": "nombre_xaf",
+      "alimente": [
+        "financier.unit_economics.cout_variable_xaf"
+      ]
+    },
+    {
+      "id": "q12",
+      "bloc": "canaux",
+      "question": "Comment vos 10 premiers clients vous trouveront-ils ?",
+      "type": "texte_court",
+      "alimente": [
+        "bmc.canaux",
+        "lean_canvas.canaux"
+      ]
+    },
+    {
+      "id": "q13",
+      "bloc": "ressources",
+      "question": "Quelles ressources vous manquent pour demarrer (argent, equipe, equipement, autorisations) ?",
+      "type": "choix_multiple",
+      "alimente": [
+        "bmc.ressources_cles",
+        "financier.besoin_financement"
+      ]
+    },
+    {
+      "id": "q14",
+      "bloc": "partenaires",
+      "question": "Quels partenaires sont indispensables (fournisseurs, operateurs, institutions) ?",
+      "type": "liste",
+      "alimente": [
+        "bmc.partenaires_cles"
+      ]
+    },
+    {
+      "id": "q15",
+      "bloc": "equipe",
+      "question": "Qui compose l'equipe, et quelles competences manquent ?",
+      "type": "texte_court",
+      "alimente": [
+        "business_plan.equipe"
+      ]
+    },
+    {
+      "id": "q16",
+      "bloc": "marche",
+      "question": "Combien de clients potentiels existent dans votre zone, et d'ou vient ce chiffre ?",
+      "type": "texte_court",
+      "alimente": [
+        "business_plan.marche"
+      ]
+    },
+    {
+      "id": "q17",
+      "bloc": "juridique",
+      "question": "Votre activite exige-t-elle un agrement, une licence ou une autorisation particuliere ?",
+      "type": "choix_unique",
+      "alimente": [
+        "contexte_local.juridique_fiscal"
+      ],
+      "declenche_si": {
+        "si": "secteur in [sante, education, finance, transport, alimentation]"
+      }
+    },
+    {
+      "id": "q18",
+      "bloc": "paiement",
+      "question": "Comment vos clients paieront-ils (cash, Mobile Money, virement, carte) ?",
+      "type": "choix_multiple",
+      "alimente": [
+        "contexte_local.paiement"
+      ]
+    },
+    {
+      "id": "q19",
+      "bloc": "risque",
+      "question": "Quel est le risque qui pourrait tout arreter ?",
+      "type": "texte_court",
+      "alimente": [
+        "business_plan.risques"
+      ]
+    },
+    {
+      "id": "q20",
+      "bloc": "traction",
+      "question": "Qu'avez-vous deja fait (prototype, ventes, precommandes, lettres d'intention) ?",
+      "type": "texte_long",
+      "alimente": [
+        "scoring.traction"
+      ]
+    }
+  ],
+  "scoring": {
+    "echelle": "0 a 100",
+    "axes": [
+      {
+        "axe": "adequation_probleme_solution",
+        "poids": 0.25,
+        "indices": [
+          "q02",
+          "q03",
+          "q07"
+        ]
+      },
+      {
+        "axe": "validation_client",
+        "poids": 0.2,
+        "indices": [
+          "q04",
+          "q20"
+        ]
+      },
+      {
+        "axe": "viabilite_economique",
+        "poids": 0.25,
+        "indices": [
+          "q08",
+          "q09",
+          "q11",
+          "q10"
+        ]
+      },
+      {
+        "axe": "faisabilite_execution",
+        "poids": 0.15,
+        "indices": [
+          "q06",
+          "q13",
+          "q15",
+          "q17"
+        ]
+      },
+      {
+        "axe": "marche_et_acquisition",
+        "poids": 0.1,
+        "indices": [
+          "q12",
+          "q16"
+        ]
+      },
+      {
+        "axe": "gestion_des_risques",
+        "poids": 0.05,
+        "indices": [
+          "q19"
+        ]
+      }
+    ],
+    "regles_de_coherence": [
+      {
+        "id": "r01",
+        "regle": "marge_unitaire <= 0",
+        "message": "Chaque vente fait perdre de l'argent : revoyez le prix ou le cout variable."
+      },
+      {
+        "id": "r02",
+        "regle": "ltv / cac < 3",
+        "message": "Le client rapporte moins de 3 fois ce qu'il coute a acquerir : modele fragile."
+      },
+      {
+        "id": "r03",
+        "regle": "revenus declares sans canal d'acquisition",
+        "message": "Aucun moyen d'atteindre les clients n'est decrit."
+      },
+      {
+        "id": "r04",
+        "regle": "interviews_clients < 10",
+        "message": "Moins de 10 entretiens : le probleme n'est pas encore valide."
+      },
+      {
+        "id": "r05",
+        "regle": "secteur reglemente sans agrement declare",
+        "message": "Verifiez les autorisations necessaires avant de lancer."
+      },
+      {
+        "id": "r06",
+        "regle": "tam saisi sans methode de calcul",
+        "message": "Indiquez d'ou vient la taille de marche (bottom-up recommande)."
+      },
+      {
+        "id": "r07",
+        "regle": "seuil_rentabilite_mois > 36",
+        "message": "Rentabilite tres lointaine : prevoyez plus de financement ou simplifiez."
+      }
+    ],
+    "niveaux": [
+      {
+        "min": 0,
+        "max": 39,
+        "libelle": "Idee a clarifier"
+      },
+      {
+        "min": 40,
+        "max": 59,
+        "libelle": "A valider sur le terrain"
+      },
+      {
+        "min": 60,
+        "max": 79,
+        "libelle": "Prometteur"
+      },
+      {
+        "min": 80,
+        "max": 100,
+        "libelle": "Pret pour financement ou lancement"
+      }
+    ]
+  }
+}

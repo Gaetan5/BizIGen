@@ -1,0 +1,1576 @@
+{
+  "version": "0.1",
+  "avertissement": "Chiffres illustratifs en XAF, a recalibrer. Aucun benchmark n'est source : chaque valeur est une hypothese de depart.",
+  "archetypes": [
+    {
+      "id": "livraison-last-mile-ville",
+      "version": "0.1",
+      "meta": {
+        "secteur": "Logistique",
+        "sous_secteur": "Livraison urbaine du dernier kilometre",
+        "modele_revenus": [
+          "commission",
+          "abonnement"
+        ],
+        "type_clientele": "B2B2C",
+        "pays_cibles": [
+          "Cameroun"
+        ],
+        "maturite_marche": "en_croissance",
+        "mots_cles": [
+          "livraison",
+          "moto",
+          "restaurants",
+          "e-commerce",
+          "mobile money"
+        ]
+      },
+      "idee": {
+        "resume": "Plateforme de livraison par motos partenaires pour restaurants, boutiques en ligne et particuliers dans une grande ville.",
+        "probleme": "Les petits commercants n'ont pas de livreurs fiables ; les clients subissent des delais incertains, des prix non standard et des difficultes d'adressage.",
+        "solution": "Application et numero WhatsApp/USSD pour commander une course, suivi simple, tarification par zone, coursiers verifies, paiement Mobile Money ou cash a la livraison reverse au commercant."
+      },
+      "bmc": {
+        "segments_clients": [
+          "Restaurants et snacks sans flotte propre",
+          "Boutiques en ligne et vendeurs sur reseaux sociaux",
+          "Particuliers envoyant des colis intra-urbains"
+        ],
+        "proposition_valeur": [
+          "Livraison en moins de 60 min dans les zones couvertes",
+          "Tarif par zone clair et affiche",
+          "Encaissement a la livraison reverse sous 24 h",
+          "Coursiers identifies et assures"
+        ],
+        "canaux": [
+          "Application mobile legere",
+          "WhatsApp Business",
+          "Demarchage terrain des commercants",
+          "Partenariats avec groupes de vendeurs en ligne"
+        ],
+        "relation_clients": [
+          "Support WhatsApp reactif",
+          "Compte dedie pour les gros commercants",
+          "Programme de fidelite par volume"
+        ],
+        "sources_revenus": [
+          "Commission ou frais de livraison par course",
+          "Abonnement mensuel pour les commercants a volume eleve",
+          "Frais pour courses urgentes ou nocturnes"
+        ],
+        "ressources_cles": [
+          "Reseau de coursiers",
+          "Application avec dispatch et suivi",
+          "Marque et reputation de fiabilite",
+          "Tresorerie pour le decalage d'encaissement"
+        ],
+        "activites_cles": [
+          "Recrutement et formation des coursiers",
+          "Dispatch et optimisation des tournees",
+          "Reversement des encaissements",
+          "Acquisition de commercants"
+        ],
+        "partenaires_cles": [
+          "Operateurs Mobile Money",
+          "Assureurs",
+          "Garages et stations-service partenaires",
+          "Associations de moto-taximen"
+        ],
+        "structure_couts": [
+          "Remuneration des coursiers",
+          "Carburant et entretien si flotte propre",
+          "Frais de transaction Mobile Money",
+          "Equipe support et operations",
+          "Hebergement et SMS"
+        ]
+      },
+      "lean_canvas": {
+        "probleme": [
+          "Livraison peu fiable et imprevisible",
+          "Pas d'encaissement securise a la livraison",
+          "Adresses imprecises"
+        ],
+        "segments_clients": [
+          "Restaurants et vendeurs en ligne de taille petite a moyenne",
+          "Early adopters : vendeurs Instagram/Facebook/WhatsApp"
+        ],
+        "proposition_valeur_unique": [
+          "Un seul numero pour livrer partout dans la ville, avec encaissement garanti"
+        ],
+        "solution": [
+          "Dispatch automatique",
+          "Points de repere au lieu d'adresses exactes",
+          "Reversement Mobile Money automatise"
+        ],
+        "canaux": [
+          "Terrain et bouche-a-oreille",
+          "Groupes de vendeurs",
+          "WhatsApp"
+        ],
+        "flux_revenus": [
+          "Frais par course",
+          "Abonnements commercants"
+        ],
+        "structure_couts": [
+          "Coursiers",
+          "Operations",
+          "Frais de paiement"
+        ],
+        "indicateurs_cles": [
+          "Livraisons par jour",
+          "Delai moyen",
+          "Taux de livraison reussie",
+          "Cout par livraison",
+          "Commercants actifs"
+        ],
+        "avantage_concurrentiel": [
+          "Densite de coursiers dans une zone",
+          "Historique de fiabilite par commercant",
+          "Integration paiement + points de repere"
+        ]
+      },
+      "business_plan": {
+        "resume_executif": "Service de livraison urbaine B2B2C visant d'abord quelques quartiers denses, avec tarification par zone et encaissement Mobile Money. Rentabilite portee par la densite de courses par zone.",
+        "marche": {
+          "tam_description": "Toutes les livraisons intra-urbaines de repas et colis dans les grandes villes du pays",
+          "sam_description": "Livraisons des commercants numeriquement actifs dans les quartiers couverts",
+          "som_description": "Part captee la 1re annee dans 3 a 5 quartiers pilotes",
+          "concurrents_types": [
+            "Plateformes de livraison existantes",
+            "Moto-taximen informels",
+            "Flottes propres de gros restaurants"
+          ],
+          "tendances": [
+            "Croissance du commerce sur reseaux sociaux",
+            "Adoption du Mobile Money"
+          ]
+        },
+        "strategie_marketing": {
+          "positionnement": "Fiabilite et transparence tarifaire",
+          "acquisition": [
+            "Pilote dans 3 quartiers",
+            "Offre de lancement aux 50 premiers commercants",
+            "Parrainage commercant a commercant"
+          ],
+          "retention": [
+            "Reversement rapide",
+            "Statistiques mensuelles pour le commercant"
+          ]
+        },
+        "operations": {
+          "processus": [
+            "Commande",
+            "Dispatch",
+            "Ramassage",
+            "Livraison et encaissement",
+            "Reversement"
+          ],
+          "outils": [
+            "App coursier",
+            "Back-office",
+            "Notifications WhatsApp/SMS"
+          ],
+          "qualite": [
+            "Notation des livraisons",
+            "Sanctions et formation des coursiers"
+          ]
+        },
+        "equipe": {
+          "fondateurs": [
+            "Profil operations",
+            "Profil technique"
+          ],
+          "recrutements_an1": [
+            "Responsable operations",
+            "Agent support",
+            "Chefs de zone"
+          ]
+        },
+        "financier": {
+          "devise": "XAF",
+          "statut_donnees": "illustratif - a recalibrer avec les donnees de l'entrepreneur",
+          "unit_economics": {
+            "prix_moyen_xaf": 1500,
+            "cout_variable_xaf": 1050,
+            "marge_unitaire_xaf": 450,
+            "marge_unitaire_pct": 30,
+            "cac_xaf": 2000,
+            "ltv_xaf": 6750,
+            "ratio_ltv_cac": 3.4
+          },
+          "projection_3_ans": [
+            {
+              "annee": 1,
+              "ca_xaf": 18000000,
+              "charges_xaf": 24000000,
+              "resultat_xaf": -6000000
+            },
+            {
+              "annee": 2,
+              "ca_xaf": 45000000,
+              "charges_xaf": 45900000,
+              "resultat_xaf": -900000
+            },
+            {
+              "annee": 3,
+              "ca_xaf": 90000000,
+              "charges_xaf": 78000000,
+              "resultat_xaf": 12000000
+            }
+          ],
+          "seuil_rentabilite": {
+            "volume_mensuel": 2667,
+            "unite": "livraisons",
+            "atteint_vers_le_mois": 22
+          },
+          "besoin_financement": {
+            "montant_xaf": 12000000,
+            "affectation": [
+              "Application et dispatch",
+              "Equipement et assurance coursiers",
+              "Tresorerie de roulement pour l'encaissement",
+              "Marketing de lancement"
+            ]
+          }
+        },
+        "risques": [
+          {
+            "risque": "Coursiers peu fiables ou vols de colis",
+            "probabilite": "moyenne",
+            "impact": "elevee",
+            "mitigation": "Verification d'identite, caution, assurance, notation"
+          },
+          {
+            "risque": "Densite insuffisante donc couts par course eleves",
+            "probabilite": "elevee",
+            "impact": "elevee",
+            "mitigation": "Concentration sur peu de quartiers avant d'etendre"
+          },
+          {
+            "risque": "Decalage de tresorerie sur l'encaissement",
+            "probabilite": "moyenne",
+            "impact": "moyenne",
+            "mitigation": "Fonds de roulement et reversement par lots"
+          },
+          {
+            "risque": "Concurrence par les prix",
+            "probabilite": "moyenne",
+            "impact": "moyenne",
+            "mitigation": "Differenciation par la fiabilite et les services aux commercants"
+          }
+        ],
+        "kpis": [
+          "Livraisons/jour",
+          "Cout par livraison",
+          "Taux de reussite",
+          "Retention commercants a 90 jours",
+          "Marge par course"
+        ],
+        "plan_30_60_90": {
+          "j30": [
+            "Entretiens avec 20 commercants",
+            "Pilote manuel via WhatsApp avec 5 coursiers"
+          ],
+          "j60": [
+            "Premiere version de l'app coursier",
+            "50 commercants testeurs"
+          ],
+          "j90": [
+            "Mesure du cout par livraison",
+            "Decision d'extension de zone"
+          ]
+        }
+      },
+      "contexte_local": {
+        "paiement": [
+          "Mobile Money (MTN MoMo, Orange Money)",
+          "Paiement a la livraison"
+        ],
+        "juridique_fiscal": [
+          "Immatriculation de l'entreprise selon le droit OHADA",
+          "Assurance des coursiers et des marchandises",
+          "Regles locales sur le transport par moto"
+        ],
+        "infrastructure": [
+          "Adressage informel : utiliser des points de repere",
+          "Connectivite variable : mode SMS/USSD de secours"
+        ],
+        "appuis_possibles": [
+          "Programmes d'incubation locaux",
+          "Financements pour PME"
+        ]
+      },
+      "benchmarks": [
+        {
+          "metrique": "Part de la commission/frais dans le panier",
+          "valeur_indicative": "10 a 20 pour cent",
+          "source": "hypothese de travail BizIGen - a verifier sur le terrain",
+          "confiance": "faible"
+        },
+        {
+          "metrique": "Delai de livraison cible",
+          "valeur_indicative": "30 a 60 minutes intra-urbain",
+          "source": "hypothese de travail BizIGen - a verifier sur le terrain",
+          "confiance": "faible"
+        }
+      ],
+      "hypotheses_a_valider": [
+        "Les commercants paieront un tarif par zone plutot que livrer eux-memes",
+        "Le cout reel par livraison reste sous 1050 XAF a volume cible",
+        "Les coursiers acceptent le modele de remuneration propose"
+      ],
+      "tests_de_validation": [
+        "Pilote manuel de 2 semaines sur WhatsApp",
+        "Mesurer le cout reel de 200 livraisons"
+      ]
+    },
+    {
+      "id": "telemedecine-consultation-abonnement",
+      "version": "0.1",
+      "meta": {
+        "secteur": "Sante",
+        "sous_secteur": "Telemedecine et consultation a distance",
+        "modele_revenus": [
+          "service_facture",
+          "abonnement"
+        ],
+        "type_clientele": "B2B2C",
+        "pays_cibles": [
+          "Cameroun",
+          "CEMAC"
+        ],
+        "maturite_marche": "emergent",
+        "mots_cles": [
+          "teleconsultation",
+          "ordonnance electronique",
+          "assurance",
+          "entreprises"
+        ]
+      },
+      "idee": {
+        "resume": "Plateforme de teleconsultation avec medecins agrees, ordonnance electronique et suivi, vendue a l'unite et en forfaits entreprises.",
+        "probleme": "Acces difficile aux medecins, longs deplacements et files d'attente, peu de suivi apres la consultation.",
+        "solution": "Consultation par video ou audio basse bande passante, ordonnance numerique verifiable, rappel de suivi, forfaits pour employeurs et ecoles."
+      },
+      "bmc": {
+        "segments_clients": [
+          "Salaries et familles de grandes entreprises",
+          "Etudiants et universites",
+          "Particuliers urbains et diaspora finançant les soins de proches"
+        ],
+        "proposition_valeur": [
+          "Consultation en quelques minutes sans deplacement",
+          "Ordonnance electronique verifiable en pharmacie",
+          "Dossier de suivi",
+          "Tarifs previsibles via forfaits"
+        ],
+        "canaux": [
+          "Application et web legers",
+          "WhatsApp pour la prise de rendez-vous",
+          "Ventes directes aux RH et universites"
+        ],
+        "relation_clients": [
+          "Assistance par chat",
+          "Rappels et suivi post-consultation",
+          "Gestionnaire de compte pour les entreprises"
+        ],
+        "sources_revenus": [
+          "Paiement par consultation",
+          "Forfaits annuels entreprises par beneficiaire",
+          "Offres diaspora"
+        ],
+        "ressources_cles": [
+          "Reseau de medecins agrees",
+          "Plateforme securisee",
+          "Conformite donnees de sante",
+          "Partenariats pharmacies"
+        ],
+        "activites_cles": [
+          "Recrutement et formation des medecins",
+          "Developpement et securite de la plateforme",
+          "Ventes B2B",
+          "Conformite reglementaire"
+        ],
+        "partenaires_cles": [
+          "Ordres et autorites de sante",
+          "Pharmacies",
+          "Laboratoires",
+          "Assureurs et mutuelles",
+          "Operateurs Mobile Money"
+        ],
+        "structure_couts": [
+          "Honoraires des medecins",
+          "Hebergement securise et video",
+          "Conformite et assurance responsabilite",
+          "Ventes et support"
+        ]
+      },
+      "lean_canvas": {
+        "probleme": [
+          "Distance et attente pour voir un medecin",
+          "Pas de suivi apres la consultation",
+          "Ordonnances papier difficiles a verifier"
+        ],
+        "segments_clients": [
+          "Employeurs et universites comme acheteurs",
+          "Salaries et etudiants comme utilisateurs"
+        ],
+        "proposition_valeur_unique": [
+          "Un medecin en quelques minutes, avec ordonnance verifiable, paye par l'employeur ou au besoin"
+        ],
+        "solution": [
+          "Teleconsultation basse bande passante",
+          "Ordonnance electronique avec code de verification",
+          "Suivi automatique"
+        ],
+        "canaux": [
+          "Ventes directes B2B",
+          "Partenariats universites",
+          "Bouche-a-oreille"
+        ],
+        "flux_revenus": [
+          "Consultations",
+          "Forfaits"
+        ],
+        "structure_couts": [
+          "Medecins",
+          "Infrastructure",
+          "Conformite"
+        ],
+        "indicateurs_cles": [
+          "Consultations/mois",
+          "Delai d'attente",
+          "Satisfaction patient",
+          "Taux de reachat",
+          "Beneficiaires sous contrat"
+        ],
+        "avantage_concurrentiel": [
+          "Contrats B2B recurrents",
+          "Reseau de medecins qualifies",
+          "Conception pour faible connectivite"
+        ]
+      },
+      "business_plan": {
+        "resume_executif": "Telemedecine vendue d'abord aux employeurs et universites, qui financent des forfaits de consultations, pour un revenu plus previsible que le paiement a l'acte seul.",
+        "marche": {
+          "tam_description": "Consultations medicales primaires dans la zone couverte",
+          "sam_description": "Beneficiaires d'entreprises et d'universites connectes",
+          "som_description": "Quelques contrats pilotes la 1re annee",
+          "concurrents_types": [
+            "Cliniques et cabinets",
+            "Autres plateformes de telemedecine",
+            "Consultations informelles par messagerie"
+          ],
+          "tendances": [
+            "Adoption du mobile",
+            "Interet des employeurs pour la sante des salaries"
+          ]
+        },
+        "strategie_marketing": {
+          "positionnement": "Soin fiable et simple, finance par l'employeur",
+          "acquisition": [
+            "Pilotes gratuits de 30 jours avec 2 entreprises",
+            "Partenariat avec une universite",
+            "Presence aupres des services RH"
+          ],
+          "retention": [
+            "Suivi apres consultation",
+            "Rapports d'usage pour l'employeur"
+          ]
+        },
+        "operations": {
+          "processus": [
+            "Inscription",
+            "Triage",
+            "Consultation",
+            "Ordonnance",
+            "Suivi"
+          ],
+          "outils": [
+            "Plateforme securisee",
+            "Agenda des medecins"
+          ],
+          "qualite": [
+            "Revue par les pairs",
+            "Enquete de satisfaction"
+          ]
+        },
+        "equipe": {
+          "fondateurs": [
+            "Profil medical",
+            "Profil technique",
+            "Profil commercial"
+          ],
+          "recrutements_an1": [
+            "Coordinateur medical",
+            "Responsable comptes entreprises"
+          ]
+        },
+        "financier": {
+          "devise": "XAF",
+          "statut_donnees": "illustratif - a recalibrer avec les donnees de l'entrepreneur",
+          "unit_economics": {
+            "prix_moyen_xaf": 5000,
+            "cout_variable_xaf": 3500,
+            "marge_unitaire_xaf": 1500,
+            "marge_unitaire_pct": 30,
+            "cac_xaf": 6000,
+            "ltv_xaf": 15000,
+            "ratio_ltv_cac": 2.5
+          },
+          "projection_3_ans": [
+            {
+              "annee": 1,
+              "ca_xaf": 10000000,
+              "charges_xaf": 21000000,
+              "resultat_xaf": -11000000
+            },
+            {
+              "annee": 2,
+              "ca_xaf": 36000000,
+              "charges_xaf": 43200000,
+              "resultat_xaf": -7200000
+            },
+            {
+              "annee": 3,
+              "ca_xaf": 90000000,
+              "charges_xaf": 83000000,
+              "resultat_xaf": 7000000
+            }
+          ],
+          "seuil_rentabilite": {
+            "volume_mensuel": 1000,
+            "unite": "consultations",
+            "atteint_vers_le_mois": 28
+          },
+          "besoin_financement": {
+            "montant_xaf": 20000000,
+            "affectation": [
+              "Plateforme et securite",
+              "Conformite et juridique",
+              "Ventes B2B",
+              "Tresorerie"
+            ]
+          }
+        },
+        "risques": [
+          {
+            "risque": "Non-conformite reglementaire ou donnees de sante",
+            "probabilite": "moyenne",
+            "impact": "elevee",
+            "mitigation": "Conseil juridique, hebergement conforme, consentement explicite"
+          },
+          {
+            "risque": "Cycle de vente B2B long",
+            "probabilite": "elevee",
+            "impact": "moyenne",
+            "mitigation": "Pilotes courts, multiples petits contrats"
+          },
+          {
+            "risque": "Diagnostic limite a distance",
+            "probabilite": "moyenne",
+            "impact": "elevee",
+            "mitigation": "Protocoles d'orientation vers un soin physique"
+          },
+          {
+            "risque": "Connectivite insuffisante",
+            "probabilite": "elevee",
+            "impact": "moyenne",
+            "mitigation": "Mode audio et SMS de secours"
+          }
+        ],
+        "kpis": [
+          "Consultations/mois",
+          "Taux d'utilisation des forfaits",
+          "Satisfaction",
+          "Delai de reponse",
+          "Revenu recurrent mensuel"
+        ],
+        "plan_30_60_90": {
+          "j30": [
+            "Valider le cadre reglementaire",
+            "Recruter 5 medecins"
+          ],
+          "j60": [
+            "Pilote avec une entreprise",
+            "Version minimale de la plateforme"
+          ],
+          "j90": [
+            "Mesurer usage et satisfaction",
+            "Preparer l'offre de forfait"
+          ]
+        }
+      },
+      "contexte_local": {
+        "paiement": [
+          "Mobile Money",
+          "Facturation entreprises par virement"
+        ],
+        "juridique_fiscal": [
+          "Cadre de la telemedecine et agrement des medecins a verifier aupres des autorites",
+          "Protection des donnees de sante",
+          "Societe selon le droit OHADA"
+        ],
+        "infrastructure": [
+          "Bande passante variable : audio d'abord, video ensuite",
+          "Pharmacies a connecter"
+        ],
+        "appuis_possibles": [
+          "Programmes d'innovation en sante",
+          "Partenariats universitaires"
+        ]
+      },
+      "benchmarks": [
+        {
+          "metrique": "Prix d'une teleconsultation",
+          "valeur_indicative": "3000 a 8000 XAF selon la specialite",
+          "source": "hypothese de travail BizIGen - a verifier sur le terrain",
+          "confiance": "faible"
+        },
+        {
+          "metrique": "Part des honoraires dans le prix",
+          "valeur_indicative": "55 a 75 pour cent",
+          "source": "hypothese de travail BizIGen - a verifier sur le terrain",
+          "confiance": "faible"
+        }
+      ],
+      "hypotheses_a_valider": [
+        "Les employeurs paieront un forfait par salarie",
+        "Le cadre reglementaire autorise le modele envisage",
+        "Les medecins acceptent la remuneration proposee"
+      ],
+      "tests_de_validation": [
+        "10 entretiens avec des responsables RH",
+        "Pilote de 50 consultations"
+      ]
+    },
+    {
+      "id": "ecole-en-ligne-abonnement",
+      "version": "0.1",
+      "meta": {
+        "secteur": "Education",
+        "sous_secteur": "Formation en ligne par abonnement",
+        "modele_revenus": [
+          "abonnement"
+        ],
+        "type_clientele": "B2C",
+        "pays_cibles": [
+          "Cameroun",
+          "CEMAC"
+        ],
+        "maturite_marche": "en_croissance",
+        "mots_cles": [
+          "cours",
+          "examens",
+          "mobile",
+          "faible bande passante"
+        ]
+      },
+      "idee": {
+        "resume": "Plateforme d'apprentissage mobile pour preparer des examens ou acquerir des competences, avec tutorat et contenus telechargeables.",
+        "probleme": "Qualite d'enseignement inegale, manque de ressources de revision, connexion limitee.",
+        "solution": "Cours courts telechargeables, quiz, tutorat par messagerie, abonnement mensuel payable par Mobile Money."
+      },
+      "bmc": {
+        "segments_clients": [
+          "Lyceens en classes d'examen",
+          "Etudiants",
+          "Adultes en reconversion"
+        ],
+        "proposition_valeur": [
+          "Cours alignes sur les programmes locaux",
+          "Utilisable hors connexion",
+          "Tuteurs disponibles",
+          "Prix accessible"
+        ],
+        "canaux": [
+          "Application mobile",
+          "Reseaux sociaux",
+          "Partenariats avec ecoles et enseignants"
+        ],
+        "relation_clients": [
+          "Communaute d'apprenants",
+          "Tutorat par messagerie",
+          "Rappels de progression"
+        ],
+        "sources_revenus": [
+          "Abonnement mensuel ou trimestriel",
+          "Packs de preparation aux examens",
+          "Licences pour etablissements"
+        ],
+        "ressources_cles": [
+          "Contenus pedagogiques",
+          "Enseignants createurs",
+          "Plateforme mobile"
+        ],
+        "activites_cles": [
+          "Production de cours",
+          "Animation du tutorat",
+          "Marketing de saison scolaire"
+        ],
+        "partenaires_cles": [
+          "Enseignants",
+          "Etablissements",
+          "Operateurs Mobile Money et telecoms"
+        ],
+        "structure_couts": [
+          "Production de contenu",
+          "Tuteurs",
+          "Hebergement",
+          "Marketing"
+        ]
+      },
+      "lean_canvas": {
+        "probleme": [
+          "Ressources de revision insuffisantes",
+          "Cout du soutien scolaire prive",
+          "Acces internet limite"
+        ],
+        "segments_clients": [
+          "Eleves d'examen et leurs parents (payeurs)"
+        ],
+        "proposition_valeur_unique": [
+          "Reussir son examen avec un tuteur et des cours hors connexion, a petit prix"
+        ],
+        "solution": [
+          "Cours telechargeables",
+          "Quiz adaptatifs",
+          "Tutorat"
+        ],
+        "canaux": [
+          "Reseaux sociaux",
+          "Enseignants relais",
+          "Ecoles"
+        ],
+        "flux_revenus": [
+          "Abonnements",
+          "Licences ecoles"
+        ],
+        "structure_couts": [
+          "Contenu",
+          "Tuteurs",
+          "Marketing"
+        ],
+        "indicateurs_cles": [
+          "Abonnes actifs",
+          "Retention mensuelle",
+          "Progression des apprenants",
+          "Taux de reussite declare"
+        ],
+        "avantage_concurrentiel": [
+          "Contenu local de qualite",
+          "Tutorat",
+          "Conception hors connexion"
+        ]
+      },
+      "business_plan": {
+        "resume_executif": "Abonnement educatif mobile a faible cout marginal, dont la croissance depend de la saisonnalite scolaire et de la retention.",
+        "marche": {
+          "tam_description": "Eleves et etudiants de la zone couverte",
+          "sam_description": "Ceux equipes d'un smartphone et pouvant payer un abonnement",
+          "som_description": "Quelques centaines d'abonnes la 1re annee",
+          "concurrents_types": [
+            "Soutien scolaire prive",
+            "Chaines et groupes educatifs gratuits",
+            "Plateformes internationales"
+          ],
+          "tendances": [
+            "Hausse de l'usage du smartphone",
+            "Demande de preparation aux examens"
+          ]
+        },
+        "strategie_marketing": {
+          "positionnement": "Reussite aux examens, accessible",
+          "acquisition": [
+            "Enseignants ambassadeurs",
+            "Essai gratuit d'une semaine",
+            "Campagnes avant les examens"
+          ],
+          "retention": [
+            "Suivi de progression",
+            "Defis et classements"
+          ]
+        },
+        "operations": {
+          "processus": [
+            "Production",
+            "Revue pedagogique",
+            "Publication",
+            "Tutorat"
+          ],
+          "outils": [
+            "Plateforme mobile",
+            "Outils de creation video"
+          ],
+          "qualite": [
+            "Validation par enseignants",
+            "Retours des apprenants"
+          ]
+        },
+        "equipe": {
+          "fondateurs": [
+            "Profil pedagogique",
+            "Profil technique"
+          ],
+          "recrutements_an1": [
+            "Responsable contenu",
+            "Tuteurs a temps partiel"
+          ]
+        },
+        "financier": {
+          "devise": "XAF",
+          "statut_donnees": "illustratif - a recalibrer avec les donnees de l'entrepreneur",
+          "unit_economics": {
+            "prix_moyen_xaf": 5000,
+            "cout_variable_xaf": 1000,
+            "marge_unitaire_xaf": 4000,
+            "marge_unitaire_pct": 80,
+            "cac_xaf": 3000,
+            "ltv_xaf": 20000,
+            "ratio_ltv_cac": 6.7
+          },
+          "projection_3_ans": [
+            {
+              "annee": 1,
+              "ca_xaf": 12000000,
+              "charges_xaf": 18400000,
+              "resultat_xaf": -6400000
+            },
+            {
+              "annee": 2,
+              "ca_xaf": 40000000,
+              "charges_xaf": 32000000,
+              "resultat_xaf": 8000000
+            },
+            {
+              "annee": 3,
+              "ca_xaf": 100000000,
+              "charges_xaf": 60000000,
+              "resultat_xaf": 40000000
+            }
+          ],
+          "seuil_rentabilite": {
+            "volume_mensuel": 500,
+            "unite": "abonnes actifs",
+            "atteint_vers_le_mois": 14
+          },
+          "besoin_financement": {
+            "montant_xaf": 8000000,
+            "affectation": [
+              "Production des premiers cours",
+              "Plateforme mobile",
+              "Marketing de lancement"
+            ]
+          }
+        },
+        "risques": [
+          {
+            "risque": "Faible retention apres l'examen",
+            "probabilite": "elevee",
+            "impact": "elevee",
+            "mitigation": "Offres continues et progression par niveaux"
+          },
+          {
+            "risque": "Piratage des contenus",
+            "probabilite": "elevee",
+            "impact": "moyenne",
+            "mitigation": "Contenus frequemment mis a jour, valeur du tutorat"
+          },
+          {
+            "risque": "Capacite de paiement limitee",
+            "probabilite": "elevee",
+            "impact": "moyenne",
+            "mitigation": "Prix bas, paiements fractionnes, packs familiaux"
+          },
+          {
+            "risque": "Connectivite",
+            "probabilite": "moyenne",
+            "impact": "moyenne",
+            "mitigation": "Telechargement hors connexion"
+          }
+        ],
+        "kpis": [
+          "Abonnes actifs",
+          "Retention a 3 mois",
+          "Cout d'acquisition",
+          "Heures d'etude par apprenant"
+        ],
+        "plan_30_60_90": {
+          "j30": [
+            "Cartographier les programmes",
+            "Produire 10 cours pilotes"
+          ],
+          "j60": [
+            "Lancer le pilote avec 100 eleves",
+            "Mettre en place le tutorat"
+          ],
+          "j90": [
+            "Mesurer retention et satisfaction",
+            "Ajuster les prix"
+          ]
+        }
+      },
+      "contexte_local": {
+        "paiement": [
+          "Mobile Money",
+          "Cartes prepayees de cours"
+        ],
+        "juridique_fiscal": [
+          "Droits d'auteur des contenus",
+          "Protection des mineurs et des donnees",
+          "Societe selon le droit OHADA"
+        ],
+        "infrastructure": [
+          "Telechargements hors connexion",
+          "Forfaits data a bas cout"
+        ],
+        "appuis_possibles": [
+          "Programmes d'innovation educative",
+          "Ecoles partenaires"
+        ]
+      },
+      "benchmarks": [
+        {
+          "metrique": "Prix d'un abonnement mensuel education",
+          "valeur_indicative": "2000 a 8000 XAF",
+          "source": "hypothese de travail BizIGen - a verifier sur le terrain",
+          "confiance": "faible"
+        },
+        {
+          "metrique": "Retention mensuelle d'un abonnement grand public",
+          "valeur_indicative": "30 a 60 pour cent",
+          "source": "hypothese de travail BizIGen - a verifier sur le terrain",
+          "confiance": "faible"
+        }
+      ],
+      "hypotheses_a_valider": [
+        "Les parents paieront un abonnement mensuel",
+        "La retention depasse 3 mois",
+        "Le tutorat est le moteur de valeur"
+      ],
+      "tests_de_validation": [
+        "Pre-vente a 50 familles",
+        "Pilote de 8 semaines avec une classe d'examen"
+      ]
+    },
+    {
+      "id": "boutique-en-ligne-social-commerce",
+      "version": "0.1",
+      "meta": {
+        "secteur": "Commerce",
+        "sous_secteur": "Vente de produits via reseaux sociaux et boutique en ligne",
+        "modele_revenus": [
+          "vente_directe"
+        ],
+        "type_clientele": "B2C",
+        "pays_cibles": [
+          "Cameroun"
+        ],
+        "maturite_marche": "mature",
+        "mots_cles": [
+          "revente",
+          "WhatsApp",
+          "Instagram",
+          "livraison",
+          "paiement mobile"
+        ]
+      },
+      "idee": {
+        "resume": "Boutique specialisee (par ex. mode, beaute ou accessoires) vendue via WhatsApp, Instagram et un catalogue web simple.",
+        "probleme": "Les clients manquent de confiance dans les vendeurs en ligne : qualite, delais, retours.",
+        "solution": "Selection de produits fiables, photos reelles, livraison suivie, paiement a la livraison ou Mobile Money, politique d'echange claire."
+      },
+      "bmc": {
+        "segments_clients": [
+          "Femmes et jeunes actifs urbains",
+          "Clients de la diaspora achetant pour leurs proches"
+        ],
+        "proposition_valeur": [
+          "Produits verifies",
+          "Livraison rapide",
+          "Echange facile",
+          "Prix transparents"
+        ],
+        "canaux": [
+          "Instagram",
+          "WhatsApp",
+          "Facebook",
+          "Catalogue web"
+        ],
+        "relation_clients": [
+          "Conseil personnalise par messagerie",
+          "Liste de diffusion",
+          "Programme de fidelite"
+        ],
+        "sources_revenus": [
+          "Marge sur la vente de produits",
+          "Frais de livraison"
+        ],
+        "ressources_cles": [
+          "Stock",
+          "Fournisseurs fiables",
+          "Audience sur les reseaux",
+          "Contenu visuel"
+        ],
+        "activites_cles": [
+          "Sourcing",
+          "Creation de contenu",
+          "Vente conversationnelle",
+          "Logistique"
+        ],
+        "partenaires_cles": [
+          "Fournisseurs et grossistes",
+          "Service de livraison",
+          "Influenceurs locaux"
+        ],
+        "structure_couts": [
+          "Achat de marchandises",
+          "Livraison",
+          "Publicite",
+          "Stockage"
+        ]
+      },
+      "lean_canvas": {
+        "probleme": [
+          "Mefiance envers les vendeurs en ligne",
+          "Produits non conformes aux photos",
+          "Retours difficiles"
+        ],
+        "segments_clients": [
+          "Acheteuses urbaines sur reseaux sociaux"
+        ],
+        "proposition_valeur_unique": [
+          "Acheter en confiance, essayer et echanger facilement"
+        ],
+        "solution": [
+          "Verification produit",
+          "Livraison avec essayage",
+          "Politique d'echange"
+        ],
+        "canaux": [
+          "Instagram",
+          "WhatsApp",
+          "Influenceurs"
+        ],
+        "flux_revenus": [
+          "Marge produits"
+        ],
+        "structure_couts": [
+          "Marchandises",
+          "Livraison",
+          "Publicite"
+        ],
+        "indicateurs_cles": [
+          "Commandes/mois",
+          "Panier moyen",
+          "Taux de retour",
+          "Taux de reachat",
+          "Cout d'acquisition"
+        ],
+        "avantage_concurrentiel": [
+          "Reputation et avis clients",
+          "Selection de produits",
+          "Relation directe"
+        ]
+      },
+      "business_plan": {
+        "resume_executif": "Commerce a capital modeste, rentable rapidement si le sourcing est maitrise et la confiance etablie. La difficulte principale est la dependance aux reseaux sociaux et la gestion du stock.",
+        "marche": {
+          "tam_description": "Achats en ligne et sur reseaux sociaux dans la zone",
+          "sam_description": "Acheteurs de la categorie choisie dans la ville",
+          "som_description": "Quelques centaines de clients reguliers",
+          "concurrents_types": [
+            "Autres vendeurs sur reseaux sociaux",
+            "Grandes plateformes",
+            "Boutiques physiques"
+          ],
+          "tendances": [
+            "Social commerce en croissance",
+            "Paiement mobile"
+          ]
+        },
+        "strategie_marketing": {
+          "positionnement": "Confiance et selection",
+          "acquisition": [
+            "Contenu quotidien",
+            "Partenariats avec micro-influenceurs",
+            "Offres de lancement"
+          ],
+          "retention": [
+            "Liste de diffusion",
+            "Avantages aux clients fideles"
+          ]
+        },
+        "operations": {
+          "processus": [
+            "Sourcing",
+            "Photographie",
+            "Commande",
+            "Livraison",
+            "Echange"
+          ],
+          "outils": [
+            "WhatsApp Business",
+            "Tableur de stock"
+          ],
+          "qualite": [
+            "Controle a la reception",
+            "Suivi des retours"
+          ]
+        },
+        "equipe": {
+          "fondateurs": [
+            "Profil commercial"
+          ],
+          "recrutements_an1": [
+            "Community manager",
+            "Preparateur de commandes"
+          ]
+        },
+        "financier": {
+          "devise": "XAF",
+          "statut_donnees": "illustratif - a recalibrer avec les donnees de l'entrepreneur",
+          "unit_economics": {
+            "prix_moyen_xaf": 15000,
+            "cout_variable_xaf": 11500,
+            "marge_unitaire_xaf": 3500,
+            "marge_unitaire_pct": 23,
+            "cac_xaf": 2500,
+            "ltv_xaf": 17500,
+            "ratio_ltv_cac": 7.0
+          },
+          "projection_3_ans": [
+            {
+              "annee": 1,
+              "ca_xaf": 30000000,
+              "charges_xaf": 31000000,
+              "resultat_xaf": -1000000
+            },
+            {
+              "annee": 2,
+              "ca_xaf": 75000000,
+              "charges_xaf": 68300000,
+              "resultat_xaf": 6700000
+            },
+            {
+              "annee": 3,
+              "ca_xaf": 150000000,
+              "charges_xaf": 129400000,
+              "resultat_xaf": 20600000
+            }
+          ],
+          "seuil_rentabilite": {
+            "volume_mensuel": 257,
+            "unite": "commandes",
+            "atteint_vers_le_mois": 9
+          },
+          "besoin_financement": {
+            "montant_xaf": 6000000,
+            "affectation": [
+              "Stock initial",
+              "Contenu et publicite",
+              "Fonds de roulement"
+            ]
+          }
+        },
+        "risques": [
+          {
+            "risque": "Invendus et immobilisation du stock",
+            "probabilite": "elevee",
+            "impact": "moyenne",
+            "mitigation": "Petites series, precommandes, solde regulier"
+          },
+          {
+            "risque": "Dependance a un algorithme de reseau social",
+            "probabilite": "elevee",
+            "impact": "elevee",
+            "mitigation": "Liste de diffusion propre, site simple"
+          },
+          {
+            "risque": "Fournisseur defaillant",
+            "probabilite": "moyenne",
+            "impact": "moyenne",
+            "mitigation": "Au moins deux fournisseurs par categorie"
+          },
+          {
+            "risque": "Retours et litiges",
+            "probabilite": "moyenne",
+            "impact": "moyenne",
+            "mitigation": "Politique claire, controle qualite"
+          }
+        ],
+        "kpis": [
+          "Commandes/mois",
+          "Marge brute",
+          "Taux de retour",
+          "Rotation du stock",
+          "Cout d'acquisition"
+        ],
+        "plan_30_60_90": {
+          "j30": [
+            "Choisir 20 produits",
+            "Tester 30 ventes"
+          ],
+          "j60": [
+            "Mesurer marge et retours",
+            "Ajouter une livraison fiable"
+          ],
+          "j90": [
+            "Elargir la gamme aux meilleurs produits",
+            "Premiere liste de diffusion de 500 contacts"
+          ]
+        }
+      },
+      "contexte_local": {
+        "paiement": [
+          "Mobile Money",
+          "Paiement a la livraison"
+        ],
+        "juridique_fiscal": [
+          "Immatriculation commerciale",
+          "Regles d'importation si produits importes",
+          "Fiscalite des petites entreprises a verifier"
+        ],
+        "infrastructure": [
+          "Livraison urbaine",
+          "Point de retrait possible"
+        ],
+        "appuis_possibles": [
+          "Programmes pour jeunes entrepreneurs",
+          "Micro-finance"
+        ]
+      },
+      "benchmarks": [
+        {
+          "metrique": "Marge brute en revente de produits grand public",
+          "valeur_indicative": "20 a 40 pour cent",
+          "source": "hypothese de travail BizIGen - a verifier sur le terrain",
+          "confiance": "faible"
+        },
+        {
+          "metrique": "Taux de retour en vente a distance",
+          "valeur_indicative": "5 a 15 pour cent",
+          "source": "hypothese de travail BizIGen - a verifier sur le terrain",
+          "confiance": "faible"
+        }
+      ],
+      "hypotheses_a_valider": [
+        "Le panier moyen atteint 15000 XAF",
+        "La confiance justifie un prix legerement superieur",
+        "Le cout d'acquisition reste sous 2500 XAF"
+      ],
+      "tests_de_validation": [
+        "Vendre 30 produits sans site",
+        "Tester deux niveaux de prix"
+      ]
+    },
+    {
+      "id": "maraichage-vente-restaurants",
+      "version": "0.1",
+      "meta": {
+        "secteur": "Agriculture",
+        "sous_secteur": "Maraichage et approvisionnement de restaurants",
+        "modele_revenus": [
+          "vente_directe",
+          "abonnement"
+        ],
+        "type_clientele": "B2B",
+        "pays_cibles": [
+          "Cameroun"
+        ],
+        "maturite_marche": "mature",
+        "mots_cles": [
+          "legumes",
+          "restaurants",
+          "irrigation",
+          "circuit court"
+        ]
+      },
+      "idee": {
+        "resume": "Exploitation maraichere livrant des legumes frais a des restaurants, hotels et marches selon des commandes recurrentes.",
+        "probleme": "Les restaurants peinent a obtenir des legumes reguliers et frais ; les producteurs vendent en gros a bas prix a des intermediaires.",
+        "solution": "Production planifiee selon les commandes, livraison hebdomadaire, prix contractuel et qualite constante."
+      },
+      "bmc": {
+        "segments_clients": [
+          "Restaurants et hotels",
+          "Cantines et traiteurs",
+          "Commercants de marche"
+        ],
+        "proposition_valeur": [
+          "Fraicheur",
+          "Regularite",
+          "Prix stable par contrat",
+          "Livraison planifiee"
+        ],
+        "canaux": [
+          "Visites directes",
+          "WhatsApp",
+          "Livraison propre ou partenaire"
+        ],
+        "relation_clients": [
+          "Contact direct avec le chef ou l'acheteur",
+          "Previsions de commandes"
+        ],
+        "sources_revenus": [
+          "Vente par caisse ou par kilo",
+          "Contrats d'approvisionnement hebdomadaires"
+        ],
+        "ressources_cles": [
+          "Terrain",
+          "Eau et irrigation",
+          "Semences et intrants",
+          "Main-d'oeuvre"
+        ],
+        "activites_cles": [
+          "Planification des cultures",
+          "Production et recolte",
+          "Conditionnement et livraison"
+        ],
+        "partenaires_cles": [
+          "Fournisseurs d'intrants",
+          "Conseillers agricoles",
+          "Transporteurs"
+        ],
+        "structure_couts": [
+          "Main-d'oeuvre",
+          "Intrants",
+          "Eau et energie",
+          "Transport"
+        ]
+      },
+      "lean_canvas": {
+        "probleme": [
+          "Approvisionnement irregulier pour les restaurants",
+          "Faible prix paye aux producteurs",
+          "Pertes apres recolte"
+        ],
+        "segments_clients": [
+          "Restaurants et hotels de la ville"
+        ],
+        "proposition_valeur_unique": [
+          "Des legumes frais livres chaque semaine a prix convenu"
+        ],
+        "solution": [
+          "Production sur commande",
+          "Livraison planifiee",
+          "Conditionnement soigne"
+        ],
+        "canaux": [
+          "Demarchage direct",
+          "Recommandations entre restaurateurs"
+        ],
+        "flux_revenus": [
+          "Ventes recurrentes"
+        ],
+        "structure_couts": [
+          "Main-d'oeuvre",
+          "Intrants",
+          "Transport"
+        ],
+        "indicateurs_cles": [
+          "Caisses vendues/semaine",
+          "Taux de perte",
+          "Rendement par parcelle",
+          "Clients sous contrat"
+        ],
+        "avantage_concurrentiel": [
+          "Relation directe",
+          "Regularite de la qualite",
+          "Cout reduit sans intermediaire"
+        ]
+      },
+      "business_plan": {
+        "resume_executif": "Exploitation de petite echelle rentable en vendant sans intermediaire a des acheteurs recurrents. La reussite depend du rendement, de la gestion de l'eau et de la reduction des pertes.",
+        "marche": {
+          "tam_description": "Demande en legumes frais des restaurants et menages de la ville",
+          "sam_description": "Restaurants et hotels accessibles par livraison",
+          "som_description": "Quelques dizaines de clients reguliers",
+          "concurrents_types": [
+            "Producteurs et grossistes de marche",
+            "Importations",
+            "Autres maraichers"
+          ],
+          "tendances": [
+            "Interet pour les produits frais locaux",
+            "Developpement de la restauration urbaine"
+          ]
+        },
+        "strategie_marketing": {
+          "positionnement": "Frais, local et regulier",
+          "acquisition": [
+            "Echantillons aux chefs",
+            "Recommandation entre clients"
+          ],
+          "retention": [
+            "Qualite constante",
+            "Previsions partagees"
+          ]
+        },
+        "operations": {
+          "processus": [
+            "Planification",
+            "Semis",
+            "Entretien",
+            "Recolte",
+            "Livraison"
+          ],
+          "outils": [
+            "Calendrier cultural",
+            "Suivi des commandes"
+          ],
+          "qualite": [
+            "Tri et controle",
+            "Reponse rapide aux reclamations"
+          ]
+        },
+        "equipe": {
+          "fondateurs": [
+            "Profil agricole",
+            "Profil commercial"
+          ],
+          "recrutements_an1": [
+            "Ouvriers agricoles",
+            "Livreur"
+          ]
+        },
+        "financier": {
+          "devise": "XAF",
+          "statut_donnees": "illustratif - a recalibrer avec les donnees de l'entrepreneur",
+          "unit_economics": {
+            "prix_moyen_xaf": 8000,
+            "cout_variable_xaf": 5000,
+            "marge_unitaire_xaf": 3000,
+            "marge_unitaire_pct": 38,
+            "cac_xaf": 4000,
+            "ltv_xaf": 36000,
+            "ratio_ltv_cac": 9.0
+          },
+          "projection_3_ans": [
+            {
+              "annee": 1,
+              "ca_xaf": 14400000,
+              "charges_xaf": 17000000,
+              "resultat_xaf": -2600000
+            },
+            {
+              "annee": 2,
+              "ca_xaf": 36000000,
+              "charges_xaf": 32100000,
+              "resultat_xaf": 3900000
+            },
+            {
+              "annee": 3,
+              "ca_xaf": 72000000,
+              "charges_xaf": 57000000,
+              "resultat_xaf": 15000000
+            }
+          ],
+          "seuil_rentabilite": {
+            "volume_mensuel": 267,
+            "unite": "caisses de 10 kg",
+            "atteint_vers_le_mois": 14
+          },
+          "besoin_financement": {
+            "montant_xaf": 6000000,
+            "affectation": [
+              "Preparation du terrain et irrigation",
+              "Semences et intrants",
+              "Equipement de conditionnement",
+              "Fonds de roulement"
+            ]
+          }
+        },
+        "risques": [
+          {
+            "risque": "Aleas climatiques et maladies",
+            "probabilite": "elevee",
+            "impact": "elevee",
+            "mitigation": "Diversification des cultures, irrigation, suivi phytosanitaire"
+          },
+          {
+            "risque": "Pertes apres recolte",
+            "probabilite": "elevee",
+            "impact": "moyenne",
+            "mitigation": "Recolte sur commande, conditionnement soigne"
+          },
+          {
+            "risque": "Securite fonciere",
+            "probabilite": "moyenne",
+            "impact": "elevee",
+            "mitigation": "Titre ou bail ecrit"
+          },
+          {
+            "risque": "Impayes de clients",
+            "probabilite": "moyenne",
+            "impact": "moyenne",
+            "mitigation": "Paiement a la livraison ou a la semaine"
+          }
+        ],
+        "kpis": [
+          "Rendement",
+          "Taux de perte",
+          "Marge par caisse",
+          "Clients recurrents"
+        ],
+        "plan_30_60_90": {
+          "j30": [
+            "Securiser le terrain et l'eau",
+            "Obtenir 5 engagements de restaurants"
+          ],
+          "j60": [
+            "Premiers semis planifies",
+            "Premier cycle de livraison"
+          ],
+          "j90": [
+            "Mesurer rendements et pertes",
+            "Ajuster le plan cultural"
+          ]
+        }
+      },
+      "contexte_local": {
+        "paiement": [
+          "Paiement a la livraison",
+          "Mobile Money"
+        ],
+        "juridique_fiscal": [
+          "Titre foncier ou bail agricole",
+          "Statut d'exploitant agricole a verifier",
+          "Societe selon le droit OHADA"
+        ],
+        "infrastructure": [
+          "Acces a l'eau",
+          "Etat des routes et transport",
+          "Stockage frais limite"
+        ],
+        "appuis_possibles": [
+          "Programmes d'appui aux jeunes agriculteurs",
+          "Micro-finance agricole"
+        ]
+      },
+      "benchmarks": [
+        {
+          "metrique": "Taux de perte apres recolte en legumes frais",
+          "valeur_indicative": "10 a 30 pour cent",
+          "source": "hypothese de travail BizIGen - a verifier sur le terrain",
+          "confiance": "faible"
+        },
+        {
+          "metrique": "Cycle de culture de legumes feuilles",
+          "valeur_indicative": "4 a 8 semaines",
+          "source": "hypothese de travail BizIGen - a verifier sur le terrain",
+          "confiance": "faible"
+        }
+      ],
+      "hypotheses_a_valider": [
+        "Les restaurants acceptent un prix contractuel",
+        "Le rendement visite est atteignable sur la parcelle",
+        "Le cout de l'eau reste maitrise"
+      ],
+      "tests_de_validation": [
+        "Livrer un echantillon a 10 restaurants",
+        "Cycle de culture test sur une petite parcelle"
+      ]
+    }
+  ]
+}

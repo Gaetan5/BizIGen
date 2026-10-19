@@ -44,19 +44,32 @@ class ConsistencyService:
         customer_segments = bmc.customer_segments
         value_props = bmc.value_propositions
         
-        if not customer_segments or not value_props:
-            issues.append({
-                "type": "BLOCKER",
-                "message": "Segments clients ou Proposition de valeur manquants.",
-                "fix": "Complétez les bases de votre Business Model."
-            })
-            score -= 30
+        # 4. Cohérence Lean Canvas vs BMC
+        if lean:
+            if not lean.unique_value_proposition or len(lean.unique_value_proposition) < 10:
+                issues.append({
+                    "type": "WARNING",
+                    "message": "Proposition de valeur unique (UVP) trop floue dans le Lean Canvas.",
+                    "fix": "Formulez une promesse claire et mémorable pour vos early adopters."
+                })
+                score -= 10
+
+        # 5. Cohérence Financière (R01 & R07 - Diagnostic Scoring)
+        if hasattr(financials, "metrics") and financials.metrics:
+            break_even_month = getattr(financials.metrics, "break_even_month", None)
+            if break_even_month and break_even_month > 36:
+                issues.append({
+                    "type": "WARNING",
+                    "message": f"Point mort atteint après {break_even_month} mois (> 3 ans) : rentabilité lointaine.",
+                    "fix": "Augmentez le panier moyen ou réduisez les coûts fixes de départ."
+                })
+                score -= 10
 
         return {
             "consistency_score": max(0, score),
             "is_logically_sound": score > 70,
             "issues": issues,
-            "expert_verdict": "Projet cohérent" if score > 80 else "Des ajustements logiques sont nécessaires."
+            "expert_verdict": "Projet hautement cohérent et prêt" if score >= 85 else ("Projet cohérent" if score > 70 else "Des ajustements logiques sont nécessaires.")
         }
 
 consistency_service = ConsistencyService()

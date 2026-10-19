@@ -4,6 +4,7 @@ from typing import Dict, List, Optional
 from app.services.enhanced_ai_service import enhanced_ai_service
 from app.services.search_service import search_service
 from app.services.sector_expertise import sector_expertise
+from app.services.archetype_service import archetype_service
 from app.schemas.intelligence_schemas import AuditResponse
 
 logger = logging.getLogger(__name__)
@@ -13,8 +14,8 @@ class BusinessAuditService:
     Strategic Auditor with strict typing and transparency.
     """
     
-    AUDIT_PROMPT = """Analyse le projet en te basant sur les données web.
-    SOIS HONNÊTE ET CRITIQUE.
+    AUDIT_PROMPT = """Analyse le projet en te basant sur les données web et les benchmarks sectoriels.
+    SOIS HONNÊTE ET CRITIQUE. Identifie les risques d'exécution, la viabilité unitaire et les opportunités de marché.
     """
 
     async def audit_project(self, project_name: str, sector: str, country: str, description: str) -> AuditResponse:
@@ -25,10 +26,13 @@ class BusinessAuditService:
             market_data = await search_service.search(search_query)
             
             market_context = json.dumps([{"title": r['title'], "link": r['link']} for r in market_data])
+            archetype_context = archetype_service.get_archetype_enrichment(sector, description)
 
             # 2. Appel IA
             system_prompt = sector_expertise.enrich_prompt(sector, self.AUDIT_PROMPT)
             user_prompt = f"PROJET: {project_name} | DESCRIPTION: {description} | MARCHÉ: {market_context}"
+            if archetype_context:
+                user_prompt += f" | BENCHMARKS MARCHÉ: {archetype_context}"
             
             response = await enhanced_ai_service.call_ai(
                 system_prompt=system_prompt,
