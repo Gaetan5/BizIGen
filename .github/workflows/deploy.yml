@@ -40,12 +40,12 @@ jobs:
             echo "🚀 [BizGen] Starting deployment at $(date)"
 
             APP_DIR="/opt/bizgen/app"
-            BRANCH="${{ github.ref_name || 'update_bizGen-ai' }}"
+            BRANCH="${{ github.event.workflow_run.head_branch || github.ref_name || 'main' }}"
 
             # ── 1. Pull latest code ──
             cd "$APP_DIR"
             echo "📥 Pulling branch $BRANCH..."
-            git fetch origin "$BRANCH"
+            git fetch --prune origin
             git checkout "$BRANCH"
             git reset --hard "origin/$BRANCH"
 
