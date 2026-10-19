@@ -119,8 +119,58 @@ export default function AdminUsersPage() {
   }, []);
 
   useEffect(() => {
-    loadUsers(page, search);
-  }, [loadUsers, page, search]);
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams({ page: page.toString() });
+        if (search.trim()) params.append('search', search.trim());
+
+        const response = await fetch(`/api/admin/users?${params.toString()}`, {
+          method: 'GET',
+          credentials: 'include',
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            toast.error('Accès refusé. Rôle administrateur requis.');
+          } else {
+            toast.error('Erreur lors du chargement des utilisateurs.');
+          }
+          setUsers([]);
+          return;
+        }
+
+        const data = await response.json();
+
+        const mapped: UserAdmin[] = (data.users || []).map((u: RawUserResponse) => ({
+          id: u.id,
+          email: u.email,
+          name: u.name,
+          role: u.role,
+          plan: u.subscription?.plan || 'FREE',
+          projectsCount: u.projectCount || 0,
+          createdAt: u.createdAt,
+        }));
+
+        setUsers(mapped);
+        if (data.pagination) {
+          setPage(data.pagination.page);
+          setTotalPages(data.pagination.totalPages || 1);
+        }
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        console.error(err);
+        toast.error('Erreur de connexion au serveur.');
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [page, search]);
 
   const handleEditUser = (user: UserAdmin) => {
     setSelectedUser(user);
@@ -283,7 +333,7 @@ export default function AdminUsersPage() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="flex items-center justify-center min-h-[300px]">
+            <div className="flex items-center justify-center min-h-75">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : users.length === 0 ? (

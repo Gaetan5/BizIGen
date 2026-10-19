@@ -159,7 +159,9 @@ class TestAICache:
     @pytest.mark.asyncio
     async def test_aget_or_set(self):
         """Test async get or set"""
+        import uuid
         cache = AICache()
+        unique_key = f"test_key_{uuid.uuid4().hex}"
         
         call_count = 0
         
@@ -169,12 +171,12 @@ class TestAICache:
             return {"generated": True}
         
         # First call - should invoke factory
-        result1 = await cache.aget_or_set("test_key", factory)
+        result1 = await cache.aget_or_set(unique_key, factory)
         assert result1["generated"] is True
         assert call_count == 1
         
         # Second call - should use cache
-        result2 = await cache.aget_or_set("test_key", factory)
+        result2 = await cache.aget_or_set(unique_key, factory)
         assert result2["generated"] is True
         assert call_count == 1  # Factory not called again
 

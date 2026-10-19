@@ -35,6 +35,16 @@ def event_loop():
     loop.close()
 
 
+@pytest.fixture(autouse=True)
+def bypass_rate_limiting():
+    """Bypass rate limiting during automated test suites to avoid 429 flakiness"""
+    with patch("app.main.rate_limiter.is_allowed", new_callable=AsyncMock) as mock_main, \
+         patch("app.main.auth_rate_limiter.is_allowed", new_callable=AsyncMock) as mock_auth:
+        mock_main.return_value = (True, 1000)
+        mock_auth.return_value = (True, 1000)
+        yield
+
+
 @pytest_asyncio.fixture(scope="function")
 async def test_engine():
     """Create test database engine"""

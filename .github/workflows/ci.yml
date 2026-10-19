@@ -61,7 +61,7 @@ jobs:
           AI_MODEL: gpt-4o-mini
         run: |
           cd mini-services/api-service
-          pytest -o addopts="" tests/test_generation.py tests/test_subscriptions.py tests/test_admin.py -v
+          pytest -o addopts="" tests/ -v
 
   frontend-build:
     name: Frontend TypeScript & Next.js Build
@@ -84,6 +84,10 @@ jobs:
       - name: Generate Prisma Client
         run: |
           npx prisma generate
+
+      - name: Lint Check (ESLint)
+        run: |
+          npm run lint
 
       - name: Type Check (TypeScript)
         run: |

@@ -14,7 +14,8 @@ import {
   Crown,
   Activity,
   ArrowUpRight,
-  Loader2
+  Loader2,
+  CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -247,7 +248,25 @@ export default function AdminDashboardPage() {
                 <Button variant="outline" className="w-full justify-between">
                   <span className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
-                    Gérer les utilisateurs et forfaits
+                    Gérer les utilisateurs et rôles
+                  </span>
+                  <ArrowUpRight className="w-4 h-4" />
+                </Button>
+              </Link>
+              <Link href="/admin/projects">
+                <Button variant="outline" className="w-full justify-between">
+                  <span className="flex items-center gap-2">
+                    <FolderKanban className="w-4 h-4" />
+                    Superviser tous les projets
+                  </span>
+                  <ArrowUpRight className="w-4 h-4" />
+                </Button>
+              </Link>
+              <Link href="/admin/subscriptions">
+                <Button variant="outline" className="w-full justify-between">
+                  <span className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4" />
+                    Abonnements & Finances
                   </span>
                   <ArrowUpRight className="w-4 h-4" />
                 </Button>
