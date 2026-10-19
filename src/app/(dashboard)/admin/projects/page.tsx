@@ -148,11 +148,11 @@ export default function AdminProjectsPage() {
             </Link>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <FolderKanban className="w-6 h-6 text-primary" />
-              Projets de la plateforme
+              Évaluation & Audit des Projets
             </h1>
           </div>
           <p className="text-muted-foreground text-sm">
-            Supervisez tous les projets, modèles Canvas et diagnostics générés ({totalCount} projets au total).
+            Espace réservé à l'administrateur pour examiner, évaluer et relire tous les BMC, Lean Canvas et Business Plans de chaque utilisateur ({totalCount} projets au total).
           </p>
         </div>
       </div>
@@ -267,9 +267,9 @@ export default function AdminProjectsPage() {
 
                   <div className="flex items-center gap-2 self-end md:self-center">
                     <Link href={`/projects/${p.id}`}>
-                      <Button variant="outline" size="sm" className="gap-1">
+                      <Button variant="outline" size="sm" className="gap-1 border-primary/40 text-primary hover:bg-primary/10">
                         <ExternalLink className="w-4 h-4" />
-                        Voir projet
+                        Inspecter & Évaluer
                       </Button>
                     </Link>
                     <Button

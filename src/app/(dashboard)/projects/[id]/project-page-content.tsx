@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +18,10 @@ import {
   Share2,
   Edit,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Shield,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { BusinessModelCanvas } from '@/components/canvas/business-model-canvas';
 import { LeanCanvas } from '@/components/canvas/lean-canvas';
@@ -45,9 +49,14 @@ export function ProjectPageContent({ id }: { id: string }) {
   const isGenerating = searchParams.get('generating') === 'true';
   const { exportCanvasToPDF, exportBusinessPlanToPDF } = useExportPDF();
 
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'ADMIN';
+
   const [activeTab, setActiveTab] = useState('bmc');
   const [generating, setGenerating] = useState(isGenerating);
   const [generationProgress, setGenerationProgress] = useState(10);
+  const [evalStatus, setEvalStatus] = useState<string>('');
+  const [savingStatus, setSavingStatus] = useState(false);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['project', id],
@@ -58,6 +67,32 @@ export function ProjectPageContent({ id }: { id: string }) {
   const project = data?.project;
   const generatedDoc = project?.generatedDoc;
   const canvases = generatedDoc?.canvases || [];
+
+  useEffect(() => {
+    if (project?.status) {
+      setEvalStatus(project.status);
+    }
+  }, [project?.status]);
+
+  const handleUpdateStatus = async (newStatus: string) => {
+    try {
+      setSavingStatus(true);
+      const res = await fetch(`/api/projects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error('Erreur mise à jour');
+      setEvalStatus(newStatus);
+      toast.success(`Statut d'évaluation mis à jour : ${newStatus}`);
+      refetch();
+    } catch {
+      toast.error('Erreur lors de la mise à jour du statut');
+    } finally {
+      setSavingStatus(false);
+    }
+  };
 
   const bmcCanvas = canvases.find((c: { canvasType: string }) => c.canvasType === 'BUSINESS_MODEL_CANVAS');
   const leanCanvas = canvases.find((c: { canvasType: string }) => c.canvasType === 'LEAN_CANVAS');
@@ -224,6 +259,49 @@ export function ProjectPageContent({ id }: { id: string }) {
 
   return (
     <div className="space-y-6">
+      {/* Super-Admin Audit & Evaluation Banner */}
+      {isAdmin && (
+        <Card className="border-primary/40 bg-primary/5 shadow-sm">
+          <CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary shrink-0">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-sm">Espace d'Évaluation & d'Audit Super-Admin</span>
+                  <Badge className="bg-red-600 text-white text-[10px]">ADMIN</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Projet de : <strong>{project?.user?.name || project?.user?.email || 'Utilisateur'}</strong> ({project?.user?.email}) — Forfait : <span className="font-medium text-foreground">{project?.user?.subscription?.plan || 'FREE'}</span>. Tous les canvas et exports sont débloqués.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+              <span className="text-xs font-semibold text-muted-foreground">Évaluation :</span>
+              <select
+                value={evalStatus || project.status}
+                onChange={(e) => handleUpdateStatus(e.target.value)}
+                disabled={savingStatus}
+                className="h-8 rounded-md border border-input bg-background px-2 py-1 text-xs font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+              >
+                <option value="DRAFT">Brouillon</option>
+                <option value="IN_PROGRESS">En cours d'étude</option>
+                <option value="COMPLETED">Complété</option>
+                <option value="VALIDATED">Validé par l'Admin</option>
+                <option value="REVISION_REQUIRED">À réviser</option>
+              </select>
+              <Link href="/admin/projects">
+                <Button variant="outline" size="sm" className="text-xs h-8">
+                  Retour liste d'audit
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-4">

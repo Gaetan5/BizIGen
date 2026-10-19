@@ -23,6 +23,8 @@ declare module 'next-auth' {
       image?: string;
       role: string;
       plan: string;
+      isImpersonating?: boolean;
+      originalAdminEmail?: string;
     };
   }
 
@@ -175,6 +177,31 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
         session.user.plan = token.plan as string;
+
+        // Support de la connexion à distance (Impersonation) pour les ADMINs
+        if (token.role === 'ADMIN') {
+          try {
+            const { cookies } = await import('next/headers');
+            const cookieStore = await cookies();
+            const impersonateId = cookieStore.get('bizgen_impersonate_id')?.value;
+            if (impersonateId && impersonateId !== token.id) {
+              const targetUser = await db.user.findUnique({
+                where: { id: impersonateId },
+                include: { subscription: true },
+              });
+              if (targetUser) {
+                session.user.id = targetUser.id;
+                session.user.email = targetUser.email;
+                session.user.name = targetUser.name ?? undefined;
+                session.user.plan = targetUser.subscription?.plan ?? 'FREE';
+                session.user.isImpersonating = true;
+                session.user.originalAdminEmail = token.email as string;
+              }
+            }
+          } catch {
+            // Contexte statique ou sans headers
+          }
+        }
       }
       return session;
     },

@@ -16,13 +16,25 @@ export async function GET(
     }
 
     const { id } = await params;
+    const isAdmin = session.user.role === 'ADMIN';
 
     const project = await db.project.findFirst({
       where: { 
         id,
-        userId: session.user.id,
+        ...(isAdmin ? {} : { userId: session.user.id }),
       },
       include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            subscription: {
+              select: { plan: true, status: true },
+            },
+          },
+        },
         formInputs: true,
         generatedDoc: {
           include: {
@@ -60,13 +72,14 @@ export async function PUT(
     }
 
     const { id } = await params;
+    const isAdmin = session.user.role === 'ADMIN';
     const body = await request.json();
     const { name, status } = body;
 
     const project = await db.project.findFirst({
       where: { 
         id,
-        userId: session.user.id,
+        ...(isAdmin ? {} : { userId: session.user.id }),
       },
     });
 
@@ -106,11 +119,12 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const isAdmin = session.user.role === 'ADMIN';
 
     const project = await db.project.findFirst({
       where: { 
         id,
-        userId: session.user.id,
+        ...(isAdmin ? {} : { userId: session.user.id }),
       },
     });
 

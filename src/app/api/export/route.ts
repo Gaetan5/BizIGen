@@ -20,12 +20,13 @@ export async function POST(request: NextRequest) {
 
     const body: ExportRequest = await request.json();
     const { projectId, type, format } = body;
+    const isAdmin = session.user.role === 'ADMIN';
 
     // Get project with canvas data
     const project = await db.project.findFirst({
       where: { 
         id: projectId,
-        userId: session.user.id,
+        ...(isAdmin ? {} : { userId: session.user.id }),
       },
       include: {
         generatedDoc: {
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Projet non trouvé ou documents non générés' }, { status: 404 });
     }
 
-    // Check subscription limits
+    // Check subscription limits (bypassed for ADMIN)
     const subscription = await db.subscription.findUnique({
       where: { userId: session.user.id },
     });
@@ -54,16 +55,16 @@ export async function POST(request: NextRequest) {
     const userPlan = subscription?.plan || 'FREE';
     const planLimits = limits[userPlan as keyof typeof limits];
 
-    // Check format availability
-    if (!planLimits.formats.includes(format)) {
+    // Check format availability (bypassed for ADMIN)
+    if (!isAdmin && !planLimits.formats.includes(format)) {
       return NextResponse.json(
         { error: `Format ${format.toUpperCase()} non disponible dans votre plan. Passez à un plan supérieur.` },
         { status: 403 }
       );
     }
 
-    // Check export count
-    if (planLimits.maxExports !== -1) {
+    // Check export count (bypassed for ADMIN)
+    if (!isAdmin && planLimits.maxExports !== -1) {
       const exportsCount = await db.export.count({
         where: {
           userId: session.user.id,

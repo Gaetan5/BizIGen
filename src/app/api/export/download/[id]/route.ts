@@ -38,6 +38,7 @@ export async function GET(
       headers: {
         'X-Internal-API-Key': internalApiKey,
         'X-User-Id': session.user.id,
+        'X-User-Role': session.user.role || 'USER',
       },
     });
 

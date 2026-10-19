@@ -37,6 +37,18 @@ function LoginForm() {
         toast.error('Email ou mot de passe incorrect');
       } else {
         toast.success('Connexion réussie !');
+        try {
+          const sessionRes = await fetch('/api/auth/session');
+          if (sessionRes.ok) {
+            const sess = await sessionRes.json();
+            if (sess?.user?.role === 'ADMIN' && (!callbackUrl || callbackUrl === '/dashboard' || callbackUrl.endsWith('/dashboard'))) {
+              window.location.href = '/admin';
+              return;
+            }
+          }
+        } catch {
+          // Fallback to standard redirect
+        }
         window.location.href = callbackUrl || '/dashboard';
       }
     } catch (error) {

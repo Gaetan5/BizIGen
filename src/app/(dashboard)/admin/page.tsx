@@ -265,8 +265,26 @@ export default function AdminDashboardPage() {
               <Link href="/admin/subscriptions">
                 <Button variant="outline" className="w-full justify-between">
                   <span className="flex items-center gap-2">
-                    <CreditCard className="w-4 h-4" />
+                    <CreditCard className="w-4 h-4 text-amber-500" />
                     Abonnements & Finances
+                  </span>
+                  <ArrowUpRight className="w-4 h-4" />
+                </Button>
+              </Link>
+              <Link href="/admin/monitoring">
+                <Button variant="outline" className="w-full justify-between">
+                  <span className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-cyan-500" />
+                    Monitoring & Santé Système
+                  </span>
+                  <ArrowUpRight className="w-4 h-4" />
+                </Button>
+              </Link>
+              <Link href="/admin/security">
+                <Button variant="outline" className="w-full justify-between">
+                  <span className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-red-500" />
+                    Sécurité & Audit Logs
                   </span>
                   <ArrowUpRight className="w-4 h-4" />
                 </Button>

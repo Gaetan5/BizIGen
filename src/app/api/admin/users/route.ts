@@ -97,7 +97,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userId, role, plan, isBanned } = body;
+    const { userId, role, plan, subStatus, resetQuotas } = body;
 
     if (!userId) {
       return NextResponse.json({ error: 'userId requis' }, { status: 400 });
@@ -107,15 +107,40 @@ export async function PUT(request: NextRequest) {
       where: { id: userId },
       data: {
         ...(role && { role }),
+        updatedAt: new Date(),
       },
     });
 
-    if (plan) {
+    if (plan || subStatus || resetQuotas) {
       await db.subscription.upsert({
         where: { userId },
-        update: { plan, status: 'ACTIVE' },
-        create: { userId, plan, status: 'ACTIVE' },
+        update: {
+          ...(plan && { plan }),
+          ...(subStatus && { status: subStatus }),
+          ...(resetQuotas && { projectsUsed: 0, exportsUsed: 0 }),
+          updatedAt: new Date(),
+        },
+        create: {
+          userId,
+          plan: plan || 'FREE',
+          status: subStatus || 'ACTIVE',
+          projectsUsed: 0,
+          exportsUsed: 0,
+        },
       });
+    }
+
+    // Sync to FastAPI users table as well if present
+    try {
+      await db.$executeRawUnsafe(
+        'UPDATE users SET role = COALESCE($1, role), subscription_plan = COALESCE($2, subscription_plan), updated_at = NOW() WHERE id = $3 OR email = $4',
+        role || null,
+        plan || null,
+        userId,
+        user.email
+      );
+    } catch (sqlErr) {
+      console.warn('FastAPI users table sync warning in admin PUT:', sqlErr);
     }
 
     // Create audit log
@@ -125,11 +150,11 @@ export async function PUT(request: NextRequest) {
         action: 'USER_UPDATED',
         entityType: 'User',
         entityId: userId,
-        metadata: JSON.stringify({ role, plan, isBanned }),
+        metadata: JSON.stringify({ role, plan, subStatus, resetQuotas, timestamp: new Date().toISOString() }),
       },
     });
 
-    return NextResponse.json({ user });
+    return NextResponse.json({ user, message: 'Utilisateur mis à jour avec succès' });
   } catch (error) {
     console.error('Admin update user error:', error);
     return NextResponse.json(
