@@ -97,7 +97,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userId, role, isBanned } = body;
+    const { userId, role, plan, isBanned } = body;
 
     if (!userId) {
       return NextResponse.json({ error: 'userId requis' }, { status: 400 });
@@ -110,6 +110,14 @@ export async function PUT(request: NextRequest) {
       },
     });
 
+    if (plan) {
+      await db.subscription.upsert({
+        where: { userId },
+        update: { plan, status: 'ACTIVE' },
+        create: { userId, plan, status: 'ACTIVE' },
+      });
+    }
+
     // Create audit log
     await db.auditLog.create({
       data: {
@@ -117,7 +125,7 @@ export async function PUT(request: NextRequest) {
         action: 'USER_UPDATED',
         entityType: 'User',
         entityId: userId,
-        metadata: JSON.stringify({ role, isBanned }),
+        metadata: JSON.stringify({ role, plan, isBanned }),
       },
     });
 

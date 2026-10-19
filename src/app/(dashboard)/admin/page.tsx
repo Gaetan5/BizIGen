@@ -19,29 +19,43 @@ import {
 import Link from 'next/link';
 
 interface AdminStats {
-  totalUsers: number;
-  activeUsers: number;
-  newUsersThisMonth: number;
-  totalProjects: number;
-  totalDocuments: number;
-  totalExports: number;
-  revenue: {
-    monthly: number;
-    currency: string;
+  users: {
+    total: number;
+    newThisMonth: number;
+    growth: string;
   };
-  planDistribution: {
+  subscriptions: {
     FREE: number;
     BASIC: number;
     PRO: number;
   };
+  projects: {
+    total: number;
+    thisMonth: number;
+  };
+  documents: {
+    total: number;
+    thisMonth: number;
+  };
+  exports: {
+    total: number;
+    thisMonth: number;
+  };
+  revenue: {
+    thisMonth: number;
+    total: number;
+  };
+  charts: {
+    sectorDistribution: Array<{ sector: string; count: number }>;
+    countryDistribution: Array<{ country: string; count: number }>;
+  };
 }
 
-async function fetchAdminStats(token: string): Promise<AdminStats | null> {
+async function fetchAdminStats(): Promise<AdminStats | null> {
   try {
-    const response = await fetch('/admin/stats?XTransformPort=3001', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+    const response = await fetch('/api/admin/stats', {
+      method: 'GET',
+      credentials: 'include',
     });
     
     if (!response.ok) return null;
@@ -59,13 +73,7 @@ export default function AdminDashboardPage() {
     let mounted = true;
     
     const loadData = async () => {
-      const token = localStorage.getItem('bizgen_token');
-      if (!token) {
-        if (mounted) setLoading(false);
-        return;
-      }
-
-      const data = await fetchAdminStats(token);
+      const data = await fetchAdminStats();
       if (mounted) {
         setStats(data);
         setLoading(false);
@@ -81,7 +89,7 @@ export default function AdminDashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-100">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -92,13 +100,14 @@ export default function AdminDashboardPage() {
       <div className="text-center py-12">
         <h2 className="text-xl font-semibold mb-2">Accès refusé</h2>
         <p className="text-muted-foreground">
-          Vous devez être administrateur pour accéder à cette page.
+          Vous devez posséder le rôle Administrateur pour accéder à cette console de gestion.
         </p>
       </div>
     );
   }
 
-  const totalPaidUsers = stats.planDistribution.BASIC + stats.planDistribution.PRO;
+  const totalPaidUsers = (stats.subscriptions.BASIC || 0) + (stats.subscriptions.PRO || 0);
+  const totalUsers = stats.users.total || 1;
 
   return (
     <div className="space-y-6">
@@ -124,9 +133,9 @@ export default function AdminDashboardPage() {
             <Users className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalUsers}</div>
+            <div className="text-2xl font-bold">{stats.users.total}</div>
             <p className="text-xs text-muted-foreground">
-              +{stats.newUsersThisMonth} ce mois
+              +{stats.users.newThisMonth} ce mois ({stats.users.growth}% croissance)
             </p>
           </CardContent>
         </Card>
@@ -137,34 +146,34 @@ export default function AdminDashboardPage() {
             <FolderKanban className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalProjects}</div>
+            <div className="text-2xl font-bold">{stats.projects.total}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.activeUsers} utilisateurs actifs
+              +{stats.projects.thisMonth} créés ce mois
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Documents</CardTitle>
+            <CardTitle className="text-sm font-medium">Documents & Exports</CardTitle>
             <FileText className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalDocuments}</div>
+            <div className="text-2xl font-bold">{stats.documents.total} docs</div>
             <p className="text-xs text-muted-foreground">
-              {stats.totalExports} exports
+              {stats.exports.total} téléchargements ({stats.exports.thisMonth} ce mois)
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Revenus mensuels</CardTitle>
+            <CardTitle className="text-sm font-medium">Revenus mensuels estimés</CardTitle>
             <DollarSign className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.revenue.monthly} {stats.revenue.currency}
+              {stats.revenue.thisMonth} €
             </div>
             <p className="text-xs text-muted-foreground">
               {totalPaidUsers} abonnés payants
@@ -178,8 +187,8 @@ export default function AdminDashboardPage() {
         {/* Plan Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle>Distribution des plans</CardTitle>
-            <CardDescription>Répartition des utilisateurs par offre</CardDescription>
+            <CardTitle>Distribution des abonnements</CardTitle>
+            <CardDescription>Répartition des utilisateurs par formule active</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -188,10 +197,10 @@ export default function AdminDashboardPage() {
                   <Badge variant="secondary">FREE</Badge>
                   Gratuit
                 </span>
-                <span className="font-medium">{stats.planDistribution.FREE}</span>
+                <span className="font-medium">{stats.subscriptions.FREE || 0}</span>
               </div>
               <Progress 
-                value={(stats.planDistribution.FREE / stats.totalUsers) * 100} 
+                value={((stats.subscriptions.FREE || 0) / totalUsers) * 100} 
                 className="h-2"
               />
             </div>
@@ -202,10 +211,10 @@ export default function AdminDashboardPage() {
                   <Badge className="bg-blue-500">BASIC</Badge>
                   7€/mois
                 </span>
-                <span className="font-medium">{stats.planDistribution.BASIC}</span>
+                <span className="font-medium">{stats.subscriptions.BASIC || 0}</span>
               </div>
               <Progress 
-                value={(stats.planDistribution.BASIC / stats.totalUsers) * 100} 
+                value={((stats.subscriptions.BASIC || 0) / totalUsers) * 100} 
                 className="h-2 [&>div]:bg-blue-500"
               />
             </div>
@@ -216,50 +225,68 @@ export default function AdminDashboardPage() {
                   <Badge className="bg-amber-500">PRO</Badge>
                   19€/mois
                 </span>
-                <span className="font-medium">{stats.planDistribution.PRO}</span>
+                <span className="font-medium">{stats.subscriptions.PRO || 0}</span>
               </div>
               <Progress 
-                value={(stats.planDistribution.PRO / stats.totalUsers) * 100} 
+                value={((stats.subscriptions.PRO || 0) / totalUsers) * 100} 
                 className="h-2 [&>div]:bg-amber-500"
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
+        {/* Quick Actions & Sectors */}
         <Card>
           <CardHeader>
-            <CardTitle>Actions rapides</CardTitle>
-            <CardDescription>Gestion de la plateforme</CardDescription>
+            <CardTitle>Actions & Secteurs Clés</CardTitle>
+            <CardDescription>Navigation rapide et top secteurs</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3">
-            <Link href="/admin/users">
-              <Button variant="outline" className="w-full justify-between">
-                <span className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  Gérer les utilisateurs
-                </span>
-                <ArrowUpRight className="w-4 h-4" />
-              </Button>
-            </Link>
-            <Link href="/admin/subscriptions">
-              <Button variant="outline" className="w-full justify-between">
-                <span className="flex items-center gap-2">
-                  <Crown className="w-4 h-4" />
-                  Gérer les abonnements
-                </span>
-                <ArrowUpRight className="w-4 h-4" />
-              </Button>
-            </Link>
-            <Link href="/admin/projects">
-              <Button variant="outline" className="w-full justify-between">
-                <span className="flex items-center gap-2">
-                  <FolderKanban className="w-4 h-4" />
-                  Voir tous les projets
-                </span>
-                <ArrowUpRight className="w-4 h-4" />
-              </Button>
-            </Link>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2">
+              <Link href="/admin/users">
+                <Button variant="outline" className="w-full justify-between">
+                  <span className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Gérer les utilisateurs et forfaits
+                  </span>
+                  <ArrowUpRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+
+            <div className="pt-2">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Top Secteurs d'activité
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {stats.charts.sectorDistribution?.length > 0 ? (
+                  stats.charts.sectorDistribution.map((item, idx) => (
+                    <Badge key={idx} variant="outline" className="px-2.5 py-1">
+                      {item.sector || 'Général'} : {item.count}
+                    </Badge>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground">Aucun secteur enregistré</p>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Top Pays cibles
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {stats.charts.countryDistribution?.length > 0 ? (
+                  stats.charts.countryDistribution.map((item, idx) => (
+                    <Badge key={idx} variant="secondary" className="px-2.5 py-1">
+                      {item.country || 'International'} : {item.count}
+                    </Badge>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground">Aucun pays enregistré</p>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -267,22 +294,22 @@ export default function AdminDashboardPage() {
       {/* Conversion Rate */}
       <Card>
         <CardHeader>
-          <CardTitle>Taux de conversion</CardTitle>
-          <CardDescription>Utilisateurs passant de Free à un plan payant</CardDescription>
+          <CardTitle>Taux de conversion global</CardTitle>
+          <CardDescription>Pourcentage d'utilisateurs convertis en forfaits payants</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
             <div className="text-4xl font-bold text-primary">
-              {stats.totalUsers > 0 
-                ? Math.round((totalPaidUsers / stats.totalUsers) * 100) 
+              {totalUsers > 0 
+                ? Math.round((totalPaidUsers / totalUsers) * 100) 
                 : 0}%
             </div>
             <div className="flex-1">
               <p className="text-sm text-muted-foreground">
-                {totalPaidUsers} utilisateurs sur {stats.totalUsers} ont souscrit à un plan payant
+                {totalPaidUsers} client(s) payant(s) sur {totalUsers} compte(s) enregistré(s)
               </p>
               <Progress 
-                value={(totalPaidUsers / stats.totalUsers) * 100} 
+                value={(totalPaidUsers / totalUsers) * 100} 
                 className="mt-2 h-3"
               />
             </div>
