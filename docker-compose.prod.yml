@@ -1,41 +1,23 @@
 # ==============================================================================
-# BizGen AI - Docker Compose Configuration (Production & Staging)
-# Hardened multi-service stack with Nginx Reverse Proxy, isolated database & redis
+# BizGen AI - Docker Compose Configuration (Production on Oracle VM)
+# Co-located with ekose (80/443) and boukarou-os (3090)
+# BizGen Frontend: 3070 | BizGen API: 3071
 # ==============================================================================
 
 services:
-  # Nginx Reverse Proxy (Frontend & API gateway on 80/443)
-  nginx:
-    image: nginx:alpine
-    container_name: bizgen-nginx-prod
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      api:
-        condition: service_healthy
-      frontend:
-        condition: service_started
-    networks:
-      - bizgen-network
-
-  # Next.js Frontend
+  # Next.js Frontend — exposed on host port 3070
   frontend:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: bizgen-frontend-prod
     restart: always
-    expose:
-      - "3000"
+    ports:
+      - "3070:3000"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://${POSTGRES_USER:-bizgen}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-bizgen}
-      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://82.70.224.82:3070}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - PYTHON_BACKEND_URL=http://api:3001
       - INTERNAL_API_KEY=${INTERNAL_API_KEY}
@@ -46,8 +28,14 @@ services:
         condition: service_healthy
     networks:
       - bizgen-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
-  # FastAPI Backend
+  # FastAPI Backend — exposed on host port 3071
   api:
     build:
       context: ./mini-services/api-service
@@ -55,8 +43,8 @@ services:
       target: production
     container_name: bizgen-api-prod
     restart: always
-    expose:
-      - "3001"
+    ports:
+      - "3071:3001"
     environment:
       - APP_NAME=BizGen AI API
       - API_PORT=3001
@@ -64,7 +52,7 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-bizgen}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-bizgen}
       - REDIS_URL=redis://redis:6379/0
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://82.70.224.82:3070}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - AI_MODEL=${AI_MODEL:-gpt-4o-mini}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
@@ -99,7 +87,7 @@ services:
       retries: 3
       start_period: 10s
 
-  # PostgreSQL Database (ISOLATED - NOT EXPOSED TO HOST)
+  # PostgreSQL Database (ISOLATED — NOT EXPOSED TO HOST)
   postgres:
     image: postgres:16-alpine
     container_name: bizgen-postgres-prod
@@ -122,7 +110,7 @@ services:
       retries: 5
       start_period: 10s
 
-  # Redis Cache (ISOLATED - NOT EXPOSED TO HOST)
+  # Redis Cache (ISOLATED — NOT EXPOSED TO HOST)
   redis:
     image: redis:7-alpine
     container_name: bizgen-redis-prod

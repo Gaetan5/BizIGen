@@ -1,0 +1,106 @@
+# ==============================================================================
+# BizGen AI — Deploy to Oracle VM via SSH
+# Triggered after CI passes on update_bizGen-ai or main
+# ==============================================================================
+
+name: Deploy BizGen AI
+
+on:
+  workflow_run:
+    workflows: ["BizGen AI CI/CD Pipeline"]
+    types: [completed]
+    branches: [main, update_bizGen-ai]
+
+  # Allow manual trigger from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Oracle VM
+    runs-on: ubuntu-latest
+    # Only deploy if CI passed (or manual trigger)
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.ORACLE_VM_HOST }}
+          username: ${{ secrets.ORACLE_VM_USER }}
+          key: ${{ secrets.ORACLE_VM_SSH_KEY }}
+          port: 22
+          command_timeout: 10m
+          script: |
+            set -e
+            echo "🚀 [BizGen] Starting deployment at $(date)"
+
+            APP_DIR="/opt/bizgen/app"
+            BRANCH="${{ github.ref_name || 'update_bizGen-ai' }}"
+
+            # ── 1. Pull latest code ──
+            cd "$APP_DIR"
+            echo "📥 Pulling branch $BRANCH..."
+            git fetch origin "$BRANCH"
+            git checkout "$BRANCH"
+            git reset --hard "origin/$BRANCH"
+
+            # ── 2. Stop old containers gracefully ──
+            echo "🛑 Stopping existing BizGen containers..."
+            docker compose -f docker-compose.prod.yml down --remove-orphans || true
+
+            # ── 3. Rebuild & start (detached) ──
+            echo "🔨 Building and starting BizGen stack..."
+            docker compose -f docker-compose.prod.yml up -d --build --force-recreate
+
+            # ── 4. Wait for health checks ──
+            echo "⏳ Waiting for services to be healthy..."
+            sleep 15
+            
+            # Check API health
+            for i in $(seq 1 12); do
+              if curl -sf http://localhost:3071/health > /dev/null 2>&1; then
+                echo "✅ BizGen API is healthy!"
+                break
+              fi
+              echo "   Attempt $i/12 — waiting 10s..."
+              sleep 10
+            done
+
+            # Check Frontend health
+            for i in $(seq 1 12); do
+              if curl -sf http://localhost:3070 > /dev/null 2>&1; then
+                echo "✅ BizGen Frontend is healthy!"
+                break
+              fi
+              echo "   Attempt $i/12 — waiting 10s..."
+              sleep 10
+            done
+
+            # ── 5. Cleanup old images ──
+            echo "🧹 Pruning dangling images..."
+            docker image prune -f
+
+            # ── 6. Status report ──
+            echo ""
+            echo "════════════════════════════════════════"
+            echo "  ✅ BizGen AI deployed successfully!"
+            echo "  Frontend: http://${{ secrets.ORACLE_VM_HOST }}:3070"
+            echo "  API:      http://${{ secrets.ORACLE_VM_HOST }}:3071"
+            echo "  Branch:   $BRANCH"
+            echo "  Time:     $(date)"
+            echo "════════════════════════════════════════"
+
+      - name: Deployment Status Notification
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ BizGen AI deployed successfully to Oracle VM"
+          else
+            echo "❌ BizGen AI deployment FAILED"
+            exit 1
+          fi
