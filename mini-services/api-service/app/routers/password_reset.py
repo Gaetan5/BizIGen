@@ -70,49 +70,18 @@ def is_token_valid(user: User) -> bool:
 
 
 async def send_reset_email(email: str, token: str, user_name: Optional[str] = None) -> None:
-    """
-    Send password reset email (simulated with logging)
-    In production, this would integrate with an email service like SendGrid, 
-    AWS SES, or similar.
-    """
+    """Send password reset email with SMTP fallback to secure logging"""
     reset_url = f"{settings.NEXTAUTH_URL}/reset-password?token={token}"
     
-    # Simulated email content
-    email_content = f"""
-    ========================================
-    PASSWORD RESET EMAIL (SIMULATED)
-    ========================================
+    from app.services.notification_service import notification_service
+    sent = await notification_service.send_password_reset_email(
+        to_email=email,
+        reset_url=reset_url,
+        user_name=user_name
+    )
     
-    To: {email}
-    Subject: Réinitialisation de votre mot de passe - BizGen AI
-    
-    Bonjour {user_name or 'Utilisateur'},
-    
-    Vous avez demandé la réinitialisation de votre mot de passe.
-    
-    Cliquez sur le lien suivant pour réinitialiser votre mot de passe:
-    {reset_url}
-    
-    Ce lien expire dans 1 heure.
-    
-    Si vous n'avez pas fait cette demande, vous pouvez ignorer cet email.
-    
-    Cordialement,
-    L'équipe BizGen AI
-    ========================================
-    """
-    
-    # Log the email (in production, actually send the email)
-    logger.info(email_content)
-    
-    # In production, you would use something like:
-    # await email_service.send(
-    #     to=email,
-    #     subject="Réinitialisation de votre mot de passe - BizGen AI",
-    #     html_content=render_template("reset_password.html", {
-    #         "reset_url": reset_url,
-    #         "user_name": user_name,
-    #         "expires_in": "1 heure"
+    if not sent:
+        logger.info(f"[PASSWORD RESET] Token généré pour {email}. Lien de réinitialisation: {reset_url}")
     #     })
     # )
 

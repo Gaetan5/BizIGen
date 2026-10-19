@@ -1,0 +1,100 @@
+name: BizGen AI CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, update_bizGen-ai ]
+  pull_request:
+    branches: [ main, update_bizGen-ai ]
+
+jobs:
+  backend-tests:
+    name: Backend Pytest Suite
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: bizgen
+          POSTGRES_PASSWORD: test_password_123
+          POSTGRES_DB: bizgen_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r mini-services/api-service/requirements.txt
+          pip install pytest pytest-asyncio pytest-cov httpx
+
+      - name: Run Backend Pytest Suite
+        env:
+          DATABASE_URL: postgresql+asyncpg://bizgen:test_password_123@localhost:5432/bizgen_test
+          REDIS_URL: redis://localhost:6379/0
+          SECRET_KEY: test_secret_key_32_chars_minimum_here!!
+          INTERNAL_API_KEY: test_internal_api_key_minimum_16_chars
+          AI_MODEL: gpt-4o-mini
+        run: |
+          cd mini-services/api-service
+          pytest -o addopts="" tests/test_generation.py tests/test_subscriptions.py tests/test_admin.py -v
+
+  frontend-build:
+    name: Frontend TypeScript & Next.js Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Node Dependencies
+        run: |
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+      - name: Generate Prisma Client
+        run: |
+          npx prisma generate
+
+      - name: Type Check (TypeScript)
+        run: |
+          npx tsc --noEmit
+
+      - name: Next.js Production Build
+        env:
+          NODE_ENV: production
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_SECRET: test_nextauth_secret_minimum_32_chars_long
+          INTERNAL_API_KEY: test_internal_api_key_minimum_16_chars
+          DATABASE_URL: postgresql://bizgen:fake@localhost:5432/bizgen
+        run: |
+          npm run build

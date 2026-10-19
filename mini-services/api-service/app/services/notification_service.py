@@ -69,6 +69,52 @@ class NotificationService:
             logger.error(f"Failed to send email: {e}")
             return False
 
+    async def send_password_reset_email(self, to_email: str, reset_url: str, user_name: Optional[str] = None) -> bool:
+        """Send password reset email via SMTP"""
+        if not self.smtp_host or not self.smtp_user:
+            logger.warning("SMTP not configured. Password reset email delivery skipped, URL logged.")
+            return False
+
+        try:
+            msg = MIMEMultipart()
+            msg['From'] = self.email_from
+            msg['To'] = to_email
+            msg['Subject'] = "Réinitialisation de votre mot de passe - BizGen AI"
+
+            name = user_name or "Entrepreneur"
+            body = f"""
+Bonjour {name},
+
+Vous avez demandé la réinitialisation de votre mot de passe sur BizGen AI.
+
+Veuillez cliquer sur le lien suivant pour choisir un nouveau mot de passe sécurisé :
+{reset_url}
+
+Ce lien est strictement confidentiel et expirera dans 1 heure.
+
+Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email en toute sécurité.
+
+Cordialement,
+L'équipe BizGen AI
+---
+BizGen AI - La plateforme d'intelligence d'affaires et de génération de business plans.
+"""
+            msg.attach(MIMEText(body, 'plain'))
+
+            def _send_reset_sync():
+                with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+                    server.starttls()
+                    server.login(self.smtp_user, self.smtp_pass)
+                    server.send_message(msg)
+
+            import asyncio
+            await asyncio.to_thread(_send_reset_sync)
+            logger.info(f"Password reset email sent successfully to {to_email}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send password reset email to {to_email}: {e}")
+            return False
+
     def generate_whatsapp_link(self, phone_number: str, project_name: str, share_url: str) -> str:
         """Generate a wa.me link with a pre-filled business message"""
         import urllib.parse

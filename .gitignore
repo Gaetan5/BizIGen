@@ -51,3 +51,6 @@ prompt
 server.log
 # Skills directory
 /skills/prisma/db/
+
+# Database backups
+/backups/
