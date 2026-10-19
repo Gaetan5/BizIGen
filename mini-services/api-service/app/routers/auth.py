@@ -124,14 +124,16 @@ async def get_current_user(
 
     # 2. Check for Internal API Key (Next.js service-to-service)
     internal_key = request.headers.get("X-Internal-API-Key")
-    if internal_key and internal_key == settings.INTERNAL_API_KEY:
-        # For internal calls, we expect userId in headers
-        user_id = request.headers.get("X-User-Id")
-        if user_id:
-            result = await db.execute(select(User).where(User.id == user_id))
-            user = result.scalar_one_or_none()
-            if user:
-                return user
+    if internal_key and settings.INTERNAL_API_KEY:
+        import secrets
+        if secrets.compare_digest(internal_key, settings.INTERNAL_API_KEY):
+            # For internal calls, we expect userId in headers
+            user_id = request.headers.get("X-User-Id")
+            if user_id:
+                result = await db.execute(select(User).where(User.id == user_id))
+                user = result.scalar_one_or_none()
+                if user:
+                    return user
 
     # 3. Regular JWT Authentication
     credentials_exception = HTTPException(

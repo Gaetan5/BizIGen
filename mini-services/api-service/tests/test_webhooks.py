@@ -147,7 +147,7 @@ class TestFlutterwaveWebhooks:
             }
         )
         
-        assert response.status_code in [200, 400, 401]
+        assert response.status_code in [200, 400, 401, 403]
     
     @pytest.mark.asyncio
     async def test_flutterwave_webhook_subscription_cancelled(
@@ -173,7 +173,7 @@ class TestFlutterwaveWebhooks:
             }
         )
         
-        assert response.status_code in [200, 400, 401]
+        assert response.status_code in [200, 400, 401, 403]
 
 
 class TestWebhookSecurity:

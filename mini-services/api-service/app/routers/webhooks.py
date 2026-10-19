@@ -78,13 +78,16 @@ async def flutterwave_webhook(
     """
     # Note: Flutterwave verification usually involves checking the hash 
     # and then calling the verification API.
-    payload = await request.json()
+    import secrets
     
-    # Simple validation for MVP - in production, use a more robust check
-    if settings.FLUTTERWAVE_SECRET_HASH and verif_hash != settings.FLUTTERWAVE_SECRET_HASH:
-        logger.warning("Flutterwave webhook received with invalid hash")
-        # return 200 to avoid Flutterwave retrying indefinitely if it's just a config mismatch
-        return {"status": "ignored"}
+    # Strict validation: reject if hash is not configured or signature does not match
+    secret_hash = getattr(settings, "FLUTTERWAVE_SECRET_HASH", None) or getattr(settings, "FLUTTERWAVE_WEBHOOK_HASH", None)
+    if not secret_hash or not verif_hash or not secrets.compare_digest(verif_hash, secret_hash):
+        logger.warning("Flutterwave webhook rejected: missing or invalid signature hash")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Invalid or missing webhook signature"
+        )
 
     event = payload.get("event")
     data = payload.get("data", {})
