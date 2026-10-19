@@ -54,3 +54,5 @@ server.log
 
 # Database backups
 /backups/
+*.zip
+data/

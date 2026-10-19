@@ -91,7 +91,7 @@ function SidebarContent({
       <div className="p-4 border-b">
         <Button
           onClick={createNewConversation}
-          className="w-full gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500"
+          className="w-full gap-2 bg-linear-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500"
         >
           <Plus className="h-4 w-4" />
           Nouvelle conversation
@@ -119,7 +119,7 @@ function SidebarContent({
                   currentConversationId === conversation.id && 'bg-violet-500/10 border border-violet-500/20'
                 )}
               >
-                <MessageSquare className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{conversation.title}</p>
                   <p className="text-xs text-muted-foreground">
@@ -352,7 +352,7 @@ export default function AssistantPage() {
             {/* Assistant info */}
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Avatar className="h-10 w-10 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 ring-2 ring-violet-500/30">
+                <Avatar className="h-10 w-10 bg-linear-to-br from-violet-500/20 to-fuchsia-500/20 ring-2 ring-violet-500/30">
                   <AvatarFallback className="bg-transparent">
                     <div className="relative">
                       <Bot className="h-5 w-5 text-violet-600 dark:text-violet-400" />

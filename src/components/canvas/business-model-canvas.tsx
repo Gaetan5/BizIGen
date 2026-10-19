@@ -289,7 +289,7 @@ export function BusinessModelCanvas({ blocks, editable = false, onUpdate }: Busi
 
   return (
     <div className="overflow-x-auto">
-      <div className="min-w-[800px]">
+      <div className="min-w-200">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-bold">Business Model Canvas</h2>
