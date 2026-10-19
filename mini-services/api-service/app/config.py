@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
     API_PORT: int = 3001
+    ENABLE_DOCS: bool = True
     
     # Database - Auto-detect from environment
     DATABASE_URL: str = ""  # Will be set dynamically
