@@ -85,19 +85,29 @@ RÈGLES STRICTES:
 Tu DOIS répondre UNIQUEMENT avec un JSON valide, sans texte avant ou après."""
         
         user_prompt = f"""
-INFORMATIONS PROJET:
-- Nom: {form_data.get('company_name', 'Projet')}
-- Secteur: {sector}
-- Pays: {country}
-- Description: {form_data.get('description', 'Non spécifié')}
-- Problème résolu: {form_data.get('problem_solved', 'Non spécifié')}
+INFORMATIONS PROJET FOURNIES PAR L'ENTREPRENEUR:
+- Nom de l'entreprise: {form_data.get('company_name', 'Projet')}
+- Secteur d'activité: {sector}
+- Pays d'implantation: {country}
+- Description détaillée: {form_data.get('description', 'Non spécifié')}
+- Problème précis résolu: {form_data.get('problem_solved', 'Non spécifié')}
 - Solution proposée: {form_data.get('solution', 'Non spécifié')}
-- Cible: {form_data.get('target_market', 'Non spécifié')}
-- Modèle revenus: {form_data.get('revenue_model', 'Non spécifié')}
-- Concurrents: {form_data.get('competitors', 'Non spécifié')}
-- Taille équipe: {form_data.get('team_size', 'Non spécifié')}
-- Budget mensuel: {form_data.get('monthly_costs', 'Non spécifié')}
+- Facteur d'unicité (UVP): {form_data.get('unique_value', 'Non spécifié')}
+- Marché cible & clients visés: {form_data.get('target_market', 'Non spécifié')}
+- Taille estimée du marché: {form_data.get('market_size', 'Non spécifié')}
+- Segment client prioritaire: {form_data.get('customer_segment', 'Non spécifié')}
+- Modèle de revenus & monétisation: {form_data.get('revenue_model', 'Non spécifié')}
+- Grille tarifaire & prix: {form_data.get('pricing', 'Non spécifié')}
+- Canaux de distribution: {form_data.get('sales_channels', 'Non spécifié')}
+- Concurrents identifiés: {form_data.get('competitors', 'Non spécifié')}
+- Ressources clés: {form_data.get('key_resources', 'Non spécifié')}
+- Activités principales: {form_data.get('key_activities', 'Non spécifié')}
+- Partenaires clés: {form_data.get('key_partners', 'Non spécifié')}
+- Coûts mensuels prévisionnels: {form_data.get('monthly_costs', 'Non spécifié')}
+- Revenus projetés à 6 mois: {form_data.get('projected_revenue_m6', 'Non spécifié')}
 - Financement recherché: {form_data.get('required_funding', 'Non spécifié')}
+- Taille équipe: {form_data.get('team_size', 'Non spécifié')}
+- Stade de financement: {form_data.get('funding_stage', 'Non spécifié')}
 
 GÉNÈRE UN BUSINESS MODEL CANVAS COMPLET AU FORMAT JSON SUIVANT:
 {{
@@ -145,16 +155,18 @@ RÈGLES:
 Tu DOIS répondre UNIQUEMENT avec un JSON valide."""
         
         user_prompt = f"""
-INFORMATIONS PROJET:
-- Nom: {form_data.get('company_name', 'Projet')}
-- Secteur: {sector}
+INFORMATIONS PROJET FOURNIES PAR L'ENTREPRENEUR:
+- Nom de l'entreprise: {form_data.get('company_name', 'Projet')}
+- Secteur d'activité: {sector}
 - Description: {form_data.get('description', 'Non spécifié')}
-- Problème résolu: {form_data.get('problem_solved', 'Non spécifié')}
+- Problème précis résolu: {form_data.get('problem_solved', 'Non spécifié')}
 - Solution proposée: {form_data.get('solution', 'Non spécifié')}
-- Unicité: {form_data.get('unique_value', 'Non spécifié')}
-- Cible: {form_data.get('target_market', 'Non spécifié')}
-- Modèle revenus: {form_data.get('revenue_model', 'Non spécifié')}
-- Coûts mensuels: {form_data.get('monthly_costs', 'Non spécifié')}
+- Facteur d'unicité (UVP): {form_data.get('unique_value', 'Non spécifié')}
+- Marché cible & clients visés: {form_data.get('target_market', 'Non spécifié')}
+- Concurrents / Alternatives existantes: {form_data.get('competitors', 'Non spécifié')}
+- Canaux de distribution: {form_data.get('sales_channels', 'Non spécifié')}
+- Modèle de revenus & Tarification: {form_data.get('revenue_model', 'Non spécifié')} (Prix: {form_data.get('pricing', 'Non spécifié')})
+- Structure des coûts mensuels: {form_data.get('monthly_costs', 'Non spécifié')}
 
 GÉNÈRE UN LEAN CANVAS COMPLET AU FORMAT JSON SUIVANT:
 {{
