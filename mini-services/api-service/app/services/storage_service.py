@@ -14,8 +14,16 @@ logger = logging.getLogger("bizgen.storage")
 
 class StorageService:
     def __init__(self):
-        self.local_dir = Path(os.environ.get("EXPORTS_DIR", "/app/exports"))
-        self.local_dir.mkdir(parents=True, exist_ok=True)
+        configured_dir = Path(os.environ.get("EXPORTS_DIR", "/app/exports"))
+        try:
+            configured_dir.mkdir(parents=True, exist_ok=True)
+            self.local_dir = configured_dir
+        except PermissionError:
+            import tempfile
+            fallback = Path(tempfile.gettempdir()) / "bizgen_exports"
+            fallback.mkdir(parents=True, exist_ok=True)
+            self.local_dir = fallback
+            logger.warning(f"Cannot write to {configured_dir}, using fallback: {fallback}")
         
         # S3 / Cloudflare R2 configurations
         self.bucket = os.environ.get("S3_BUCKET")
