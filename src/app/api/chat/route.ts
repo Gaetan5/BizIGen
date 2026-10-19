@@ -55,6 +55,36 @@ CONTEXTE PROJET ACTUEL:
 
     const aiResponse = response.choices?.[0]?.message?.content || '';
 
+    // If streaming requested, send SSE stream for instant typing experience
+    const isStream = request.nextUrl.searchParams.get('stream') === 'true';
+    if (isStream) {
+      const encoder = new TextEncoder();
+      const customReadable = new ReadableStream({
+        async start(controller) {
+          try {
+            const chunks = aiResponse.split(/(\s+)/);
+            for (const chunk of chunks) {
+              const payload = JSON.stringify({ text: chunk });
+              controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
+              await new Promise(r => setTimeout(r, 25));
+            }
+            controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
+            controller.close();
+          } catch (err) {
+            controller.error(err);
+          }
+        }
+      });
+
+      return new Response(customReadable, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    }
+
     // Générer des suggestions automatiques basées sur la réponse
     const suggestionsResponse = await zai.chat.completions.create({
       messages: [

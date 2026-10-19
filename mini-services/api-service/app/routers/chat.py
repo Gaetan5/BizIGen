@@ -3,6 +3,7 @@ BizGen AI - Chat Router
 AI-powered chat assistant for project assistance
 """
 from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional, List
@@ -134,6 +135,68 @@ async def chat_with_ai(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"AI chat error: {str(e)}"
         )
+
+
+@router.post("/stream")
+async def chat_stream_with_ai(
+    request: ChatRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Stream AI response using Server-Sent Events (SSE) for zero-latency UI"""
+    from app.services.enhanced_ai_service import enhanced_ai_service
+    from app.services.archetype_service import archetype_service
+    
+    project_data = ""
+    sector = "Général"
+    if request.projectId:
+        result = await db.execute(
+            select(Project)
+            .where(Project.id == request.projectId, Project.userId == current_user.id)
+        )
+        project = result.scalar_one_or_none()
+        if project:
+            sector = project.sector or "Général"
+            project_data = f"Nom du projet: {project.name} | Secteur: {project.sector} | Description: {project.description or ''}"
+    
+    archetype_context = archetype_service.get_archetype_enrichment(sector, request.message)
+    
+    system_prompt = (
+        "Tu es l'assistant IA d'élite de BizGen AI, spécialisé dans l'accélération des entrepreneurs et porteurs de projet.\n"
+        "Sois précis, concret, direct et pédagogique. Structure tes réponses avec du Markdown propre (puces, gras).\n"
+    )
+    if project_data:
+        system_prompt += f"\nContexte du projet en cours : {project_data}\n"
+    if archetype_context:
+        system_prompt += f"\nRepères sectoriels et benchmarks de marché :\n{archetype_context}\n"
+    
+    user_prompt = request.message
+    if request.context:
+        user_prompt += f"\nContexte additionnel : {request.context}"
+    
+    async def event_generator():
+        try:
+            async for chunk in enhanced_ai_service.stream_ai(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=0.7
+            ):
+                payload = json.dumps({"text": chunk})
+                yield f"data: {payload}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as err:
+            err_payload = json.dumps({"error": str(err)})
+            yield f"data: {err_payload}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
 
 
 @router.get("/history/{project_id}")

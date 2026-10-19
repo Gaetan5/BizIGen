@@ -16,6 +16,7 @@ from app.database import get_db
 from app.models.models import User, Project, GeneratedDocument, CanvasData, Export, Subscription
 from app.routers.auth import get_current_user
 from app.services.export_service import export_service
+from app.services.storage_service import storage_service
 from app.services.payment_service import payment_service
 
 router = APIRouter(prefix="/export", tags=["Exports"])
@@ -151,13 +152,22 @@ async def export_document(
             detail=str(e)
         )
     
+    # Save file persistently in Cloud / Local volume
+    filename = f"{project.name}_{doc_type}.{request.format}"
+    content_type = "application/pdf" if request.format == "pdf" else "application/octet-stream"
+    safe_name, file_hash, file_size = await storage_service.save_file(
+        file_bytes=file_bytes,
+        filename=filename,
+        content_type=content_type
+    )
+
     # Generate export record
     export_record = Export(
         docId=gen_doc.id,
         userId=current_user.id,
         format=request.format.upper(),
-        fileUrl=f"/export/download/{doc_type}",
-        fileSize=len(file_bytes)
+        fileUrl=f"/export/download/{safe_name}?type={doc_type}",
+        fileSize=file_size
     )
     db.add(export_record)
     
@@ -168,9 +178,8 @@ async def export_document(
     await db.commit()
     await db.refresh(export_record)
     
-    # Generate filename and download URL with type
-    filename = f"{project.name}_{doc_type}.{request.format}"
-    file_url = f"/export/download/{export_record.id}?type={doc_type}"
+    # Set final download URL
+    file_url = f"/export/download/{safe_name}?type={doc_type}"
     export_record.fileUrl = file_url
     await db.commit()
     
@@ -181,7 +190,7 @@ async def export_document(
         format=request.format,
         fileUrl=file_url,
         url=file_url,
-        fileSize=len(file_bytes),
+        fileSize=file_size,
         message="Export ready. Use the download endpoint to get the file."
     )
 

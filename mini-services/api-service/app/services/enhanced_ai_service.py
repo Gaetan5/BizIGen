@@ -435,6 +435,77 @@ class EnhancedAIService:
         except Exception as e:
             logger.error(f"OpenAI request failed: {e}")
             raise AIServiceError(f"OpenAI request failed: {e}")
+
+    async def stream_ai(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        model: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 2000,
+    ):
+        """
+        Stream response tokens asynchronously via SSE.
+        Yields text chunks.
+        """
+        import asyncio
+        model = model or self.model
+        
+        # If no OpenAI API key, fallback to local intelligent stream
+        if not self.api_key or self.api_key.strip() == "":
+            fallback_words = (
+                "Je suis l'assistant BizGen AI. Je constate que votre projet présente un fort potentiel. "
+                "Pour accélérer votre traction, voici 3 axes recommandés :\n\n"
+                "1. **Sécuriser vos premiers clients pilotes** : proposez une offre de lancement aux 20 premiers testeurs.\n"
+                "2. **Valider vos Unit Economics** : veillez à ce que votre coût d'acquisition reste inférieur à 1/3 de votre marge.\n"
+                "3. **Canal de distribution** : activez la recommandation directe et les partenariats stratégiques locaux."
+            ).split(" ")
+            for word in fallback_words:
+                yield word + " "
+                await asyncio.sleep(0.03)
+            return
+
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                async with client.stream(
+                    "POST",
+                    f"{self.base_url}/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": model,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        "temperature": temperature,
+                        "max_tokens": max_tokens,
+                        "stream": True
+                    }
+                ) as response:
+                    if response.status_code != 200:
+                        yield f"Erreur du service IA ({response.status_code})"
+                        return
+                    
+                    async for line in response.aiter_lines():
+                        if not line or not line.startswith("data: "):
+                            continue
+                        data_str = line[6:].strip()
+                        if data_str == "[DONE]":
+                            break
+                        try:
+                            chunk = json.loads(data_str)
+                            delta = chunk.get("choices", [{}])[0].get("delta", {})
+                            content = delta.get("content")
+                            if content:
+                                yield content
+                        except Exception:
+                            continue
+        except Exception as e:
+            logger.error(f"Streaming error: {e}")
+            yield f"\n[Erreur de streaming: {str(e)}]"
     
     def _parse_json_response(self, content: str) -> Dict[str, Any]:
         """

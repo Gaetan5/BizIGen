@@ -46,6 +46,86 @@ export const chatApi = {
   },
 
   /**
+   * Stream a response from the AI assistant in real-time
+   */
+  async stream(
+    message: string,
+    projectId?: string | null,
+    context?: string,
+    onChunk?: (chunk: string) => void,
+    onDone?: (fullText: string, suggestions: string[]) => void,
+    onError?: (error: string) => void
+  ) {
+    try {
+      const response = await fetch('/api/chat?stream=true', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          projectId,
+          context,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errMsg = errorData.error || 'Erreur lors du streaming de la réponse';
+        onError?.(errMsg);
+        return { success: false, error: errMsg };
+      }
+
+      if (!response.body) {
+        throw new Error('ReadableStream not supported');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+      let done = false;
+
+      while (!done) {
+        const { value, done: streamDone } = await reader.read();
+        done = streamDone;
+        if (value) {
+          const chunkStr = decoder.decode(value, { stream: !done });
+          const lines = chunkStr.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const dataStr = line.slice(6).trim();
+              if (dataStr === '[DONE]') {
+                done = true;
+                break;
+              }
+              try {
+                const parsed = JSON.parse(dataStr);
+                if (parsed.text) {
+                  fullText += parsed.text;
+                  onChunk?.(parsed.text);
+                }
+              } catch {
+                // Raw text chunk fallback
+                if (dataStr) {
+                  fullText += dataStr;
+                  onChunk?.(dataStr);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      onDone?.(fullText, ['Comment valider ce modèle ?', 'Quels indicateurs suivre ?', 'Prochaine étape']);
+      return { success: true, fullText };
+    } catch (error: any) {
+      console.error('Chat stream error:', error);
+      onError?.(error.message || 'Erreur de flux');
+      return { success: false, error: error.message };
+    }
+  },
+
+  /**
    * Get suggested questions based on project status
    */
   async getSuggestions(projectId: string) {

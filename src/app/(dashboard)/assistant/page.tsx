@@ -240,60 +240,104 @@ export default function AssistantPage() {
 
     setIsLoading(true);
 
+    const assistantMsgId = generateId();
+    let accumulatedText = '';
+
     try {
-      const response = await chatApi.send(content, currentConversationId);
-
-      if (response.success && response.data) {
-        const assistantMessage: Message = {
-          id: generateId(),
-          role: 'assistant',
-          content: response.data.response,
-          timestamp: new Date(),
-        };
-
-        // Remove loading and add assistant response
-        setMessages(prev => [...prev.slice(0, -1), assistantMessage]);
-
-        // Update suggestions
-        if (response.data.suggestions) {
-          setSuggestions(response.data.suggestions);
-        }
-
-        // Update conversation
-        if (currentConversationId) {
-          setConversations(prev => prev.map(c => {
-            if (c.id === currentConversationId) {
-              const updatedMessages = [...c.messages, userMessage, assistantMessage];
-              return {
-                ...c,
-                messages: updatedMessages,
-                title: c.messages.length === 1 ? content.substring(0, 50) + '...' : c.title,
-                updatedAt: new Date(),
-              };
+      const streamResult = await chatApi.stream(
+        content,
+        currentConversationId,
+        undefined,
+        (chunk) => {
+          accumulatedText += chunk;
+          setMessages(prev => {
+            const lastMsg = prev[prev.length - 1];
+            if (lastMsg && (lastMsg.id === 'loading' || lastMsg.id === assistantMsgId)) {
+              return [
+                ...prev.slice(0, -1),
+                {
+                  id: assistantMsgId,
+                  role: 'assistant',
+                  content: accumulatedText,
+                  timestamp: new Date(),
+                  isLoading: false,
+                }
+              ];
             }
-            return c;
-          }));
-        } else {
-          // Create new conversation with these messages
-          const newConversation: Conversation = {
-            id: generateId(),
-            title: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
-            messages: [WELCOME_MESSAGE, userMessage, assistantMessage],
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            return prev;
+          });
+        },
+        (fullText, newSuggestions) => {
+          const finalMessage: Message = {
+            id: assistantMsgId,
+            role: 'assistant',
+            content: fullText || accumulatedText,
+            timestamp: new Date(),
           };
-          setConversations(prev => [newConversation, ...prev]);
-          setCurrentConversationId(newConversation.id);
+
+          setMessages(prev => {
+            const filtered = prev.filter(m => m.id !== 'loading' && m.id !== assistantMsgId);
+            return [...filtered, finalMessage];
+          });
+
+          if (newSuggestions && newSuggestions.length > 0) {
+            setSuggestions(newSuggestions);
+          }
+
+          // Update conversation in state & storage
+          if (currentConversationId) {
+            setConversations(prev => prev.map(c => {
+              if (c.id === currentConversationId) {
+                return {
+                  ...c,
+                  messages: [...c.messages, userMessage, finalMessage],
+                  title: c.messages.length === 1 ? content.substring(0, 50) + '...' : c.title,
+                  updatedAt: new Date(),
+                };
+              }
+              return c;
+            }));
+          } else {
+            const newConversation: Conversation = {
+              id: generateId(),
+              title: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+              messages: [WELCOME_MESSAGE, userMessage, finalMessage],
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+            setConversations(prev => [newConversation, ...prev]);
+            setCurrentConversationId(newConversation.id);
+          }
+        },
+        async () => {
+          // Fallback to static send if stream network issue
+          const response = await chatApi.send(content, currentConversationId);
+          if (response.success && response.data) {
+            const assistantMessage: Message = {
+              id: generateId(),
+              role: 'assistant',
+              content: response.data.response,
+              timestamp: new Date(),
+            };
+            setMessages(prev => [...prev.slice(0, -1), assistantMessage]);
+            if (response.data.suggestions) setSuggestions(response.data.suggestions);
+          }
         }
-      } else {
-        // Error handling
-        const errorMessage: Message = {
-          id: generateId(),
-          role: 'assistant',
-          content: `Désolé, une erreur s'est produite. Veuillez réessayer.\n\n${response.error || 'Erreur inconnue'}`,
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev.slice(0, -1), errorMessage]);
+      );
+
+      if (!streamResult.success && !accumulatedText) {
+        // Fallback to regular send
+        const response = await chatApi.send(content, currentConversationId);
+        if (response.success && response.data) {
+          const assistantMessage: Message = {
+            id: generateId(),
+            role: 'assistant',
+            content: response.data.response,
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev.slice(0, -1), assistantMessage]);
+          if (response.data.suggestions) setSuggestions(response.data.suggestions);
+        }
       }
     } catch (error) {
       const errorMessage: Message = {
