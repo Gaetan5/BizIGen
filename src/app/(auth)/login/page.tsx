@@ -37,7 +37,7 @@ function LoginForm() {
         toast.error('Email ou mot de passe incorrect');
       } else {
         toast.success('Connexion réussie !');
-        router.push(callbackUrl);
+        window.location.href = callbackUrl || '/dashboard';
       }
     } catch (error) {
       toast.error('Une erreur est survenue');

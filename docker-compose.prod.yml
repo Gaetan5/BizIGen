@@ -29,7 +29,7 @@ services:
     networks:
       - bizgen-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000"]
       interval: 15s
       timeout: 5s
       retries: 3

@@ -41,8 +41,11 @@ declare module 'next-auth/jwt' {
 }
 
 const isProduction = process.env.NODE_ENV === 'production';
+const useSecureCookies = isProduction;
+const cookiePrefix = useSecureCookies ? '__Secure-' : '';
 
 export const authOptions: NextAuthOptions = {
+  useSecureCookies,
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60,
@@ -54,30 +57,30 @@ export const authOptions: NextAuthOptions = {
   },
   cookies: {
     sessionToken: {
-      name: `next-auth.session-token`,
+      name: `${cookiePrefix}next-auth.session-token`,
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: isProduction,
+        secure: useSecureCookies,
       },
     },
     callbackUrl: {
-      name: `next-auth.callback-url`,
+      name: `${cookiePrefix}next-auth.callback-url`,
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: isProduction,
+        secure: useSecureCookies,
       },
     },
     csrfToken: {
-      name: `next-auth.csrf-token`,
+      name: `${useSecureCookies ? '__Host-' : ''}next-auth.csrf-token`,
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: isProduction,
+        secure: useSecureCookies,
       },
     },
   },
