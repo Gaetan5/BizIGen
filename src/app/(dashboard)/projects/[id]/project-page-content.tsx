@@ -68,11 +68,6 @@ export function ProjectPageContent({ id }: { id: string }) {
   const generatedDoc = project?.generatedDoc;
   const canvases = generatedDoc?.canvases || [];
 
-  useEffect(() => {
-    if (project?.status) {
-      setEvalStatus(project.status);
-    }
-  }, [project?.status]);
 
   const handleUpdateStatus = async (newStatus: string) => {
     try {

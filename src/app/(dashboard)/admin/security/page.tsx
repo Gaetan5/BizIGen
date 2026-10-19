@@ -65,7 +65,24 @@ export default function AdminSecurityPage() {
   };
 
   useEffect(() => {
-    fetchSecurity(1);
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch(`/api/admin/security?page=1`);
+        if (!res.ok || cancelled) return;
+        const json = await res.json();
+        if (!cancelled) {
+          setData(json);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const getActionBadge = (action: string) => {

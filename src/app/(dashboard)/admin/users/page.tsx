@@ -100,9 +100,8 @@ export default function AdminUsersPage() {
   const [newRole, setNewRole] = useState('USER');
   const [creating, setCreating] = useState(false);
 
-  const loadUsers = useCallback(async (pageNum: number = 1, searchQuery: string = '') => {
+  const fetchUsersData = useCallback(async (pageNum: number = 1, searchQuery: string = '') => {
     try {
-      setLoading(true);
       const params = new URLSearchParams({ page: pageNum.toString() });
       if (searchQuery.trim()) params.append('search', searchQuery.trim());
 
@@ -147,13 +146,52 @@ export default function AdminUsersPage() {
   }, []);
 
   useEffect(() => {
-    loadUsers(page, search);
-  }, [loadUsers, page]);
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const params = new URLSearchParams({ page: page.toString() });
+        if (search.trim()) params.append('search', search.trim());
+
+        const response = await fetch(`/api/admin/users?${params.toString()}`, {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        if (!response.ok || cancelled) return;
+        const data = await response.json();
+        if (!cancelled) {
+          const mapped: UserAdmin[] = (data.users || []).map((u: RawUserResponse) => ({
+            id: u.id,
+            email: u.email,
+            name: u.name,
+            role: u.role,
+            plan: u.subscription?.plan || 'FREE',
+            subStatus: u.subscription?.status || 'ACTIVE',
+            projectsCount: u.projectCount || 0,
+            createdAt: u.createdAt,
+          }));
+          setUsers(mapped);
+          if (data.pagination) {
+            setTotalPages(data.pagination.totalPages || 1);
+          }
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [page, search]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    loadUsers(1, search);
+    setLoading(true);
+    fetchUsersData(1, search);
   };
 
   const handleEditUser = (user: UserAdmin) => {
@@ -189,7 +227,7 @@ export default function AdminUsersPage() {
 
       toast.success(`Utilisateur ${selectedUser.email} mis à jour avec succès`);
       setEditDialogOpen(false);
-      loadUsers(page, search);
+      fetchUsersData(page, search);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
@@ -216,7 +254,7 @@ export default function AdminUsersPage() {
       if (!res.ok) throw new Error(data.error || 'Erreur de connexion à distance');
 
       toast.success(`Connecté en tant que ${user.email} !`);
-      window.location.href = data.redirectUrl || '/dashboard';
+      window.location.assign(data.redirectUrl || '/dashboard');
     } catch (err: any) {
       toast.error(err.message || 'Erreur impersonate');
       setImpersonatingId(null);
@@ -283,7 +321,7 @@ export default function AdminUsersPage() {
       }
 
       toast.success(`Utilisateur ${user.email} supprimé`);
-      loadUsers(page, search);
+      fetchUsersData(page, search);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erreur inconnue');
     }
@@ -320,7 +358,7 @@ export default function AdminUsersPage() {
       setNewEmail('');
       setNewName('');
       setNewPassword('');
-      loadUsers(page, search);
+      fetchUsersData(page, search);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
@@ -369,7 +407,7 @@ export default function AdminUsersPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => loadUsers(page, search)} disabled={loading} className="gap-2">
+          <Button variant="outline" size="sm" onClick={() => { setLoading(true); fetchUsersData(page, search); }} disabled={loading} className="gap-2">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Actualiser
           </Button>

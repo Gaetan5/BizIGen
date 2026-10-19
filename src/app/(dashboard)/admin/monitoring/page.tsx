@@ -82,9 +82,27 @@ export default function AdminMonitoringPage() {
   };
 
   useEffect(() => {
-    fetchMonitoring();
-    const interval = setInterval(fetchMonitoring, 20000); // Poll every 20s
-    return () => clearInterval(interval);
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch('/api/admin/monitoring');
+        if (!res.ok || cancelled) return;
+        const json = await res.json();
+        if (!cancelled) {
+          setData(json);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    const interval = setInterval(load, 20000); // Poll every 20s
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
 
   const getStatusBadge = (status: string) => {

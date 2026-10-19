@@ -340,7 +340,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     {session?.user?.name?.charAt(0) || session?.user?.email?.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col text-left hidden md:flex">
+                <div className="hidden md:flex flex-col text-left">
                   <span className="text-xs font-medium leading-none">{session?.user?.name || session?.user?.email}</span>
                   <span className="text-[10px] text-muted-foreground mt-0.5">
                     {userRole === 'ADMIN' ? 'Administrateur' : userPlan}
