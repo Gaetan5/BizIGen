@@ -75,12 +75,10 @@ export async function POST(request: NextRequest) {
       where: { userId },
     });
 
-    const currentMonthProjects = await db.project.count({
+    // Compter les projets actifs actuels de l'utilisateur
+    const activeProjectsCount = await db.project.count({
       where: {
         userId,
-        createdAt: {
-          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-        },
       },
     });
 
@@ -93,9 +91,9 @@ export async function POST(request: NextRequest) {
     const userPlan = subscription?.plan || 'FREE';
     const maxProjects = limits[userPlan as keyof typeof limits];
 
-    if (maxProjects !== -1 && currentMonthProjects >= maxProjects) {
+    if (maxProjects !== -1 && activeProjectsCount >= maxProjects) {
       return NextResponse.json(
-        { error: 'Limite de projets atteinte. Veuillez mettre à niveau votre abonnement.' },
+        { error: 'Limite de projets atteinte pour votre forfait. Supprimez un projet ou passez à l\'abonnement PRO.' },
         { status: 403 }
       );
     }
