@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Lightbulb, Sparkles, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { useState } from 'react';
+import { Lightbulb, Sparkles, ChevronDown, ChevronUp, Check, Plus } from 'lucide-react';
 
 // ============================================
 // SECTOR SUGGESTIONS DATA
@@ -15,11 +14,6 @@ export interface SectorSuggestion {
 
 type SuggestionMap = Record<string, SectorSuggestion[]>;
 
-/**
- * Suggestions sectorielles prédictives par secteur et par pays.
- * Chaque suggestion est un texte pré-rédigé que l'utilisateur
- * peut insérer en un clic dans le champ correspondant.
- */
 const SECTOR_SUGGESTIONS: Record<string, SuggestionMap> = {
   // ============================
   // TECH
@@ -27,98 +21,89 @@ const SECTOR_SUGGESTIONS: Record<string, SuggestionMap> = {
   TECH: {
     CM: [
       {
+        questionKey: 'description',
+        suggestions: [
+          'Nous développons une plateforme SaaS mobile-first qui simplifie la gestion des opérations et des stocks pour les PME et commerçants locaux.',
+          'Nous proposons une solution FinTech permettant aux professionnels et particuliers d\'effectuer des paiements et transferts automatisés via Mobile Money.',
+          'Nous concevons une application web et mobile connectant les prestataires de services qualifiés aux entreprises et ménages en temps réel.',
+        ],
+      },
+      {
         questionKey: 'problem_solved',
         suggestions: [
-          'Les PME camerounaises manquent d\'outils digitaux accessibles et abordables pour gérer leurs opérations quotidiennes (stocks, factures, comptabilité).',
-          'L\'accès aux services bancaires traditionnels reste limité pour 60% de la population, freinant l\'inclusion financière.',
-          'Les étudiants universitaires n\'ont pas accès à des ressources d\'apprentissage en ligne adaptées au contexte local.',
+          'Les PME manquent d\'outils digitaux simples et abordables pour gérer leurs opérations quotidiennes (ventes, stocks, facturation), entraînant des pertes de 20% de chiffre d\'affaires.',
+          'L\'accès aux services bancaires traditionnels reste trop complexe et coûteux, excluant les acteurs informels des circuits de paiement modernes.',
+          'Les entreprises perdent un temps précieux dans des démarches manuelles non digitalisées et sans traçabilité des données.',
         ],
       },
       {
         questionKey: 'solution',
         suggestions: [
-          'Application mobile/web SaaS légère fonctionnant sur smartphones bas de gamme avec mode hors-ligne et synchronisation automatique.',
-          'Plateforme de paiement mobile intégrée avec MTN Mobile Money et Orange Money, accessible via USSD et application.',
-          'Marketplace éducative avec contenus produits par des enseignants locaux, accessibles via SMS et application légère.',
+          'Une application mobile légère fonctionnant hors-ligne (Offline-first) avec synchronisation automatique et intégration native MTN MoMo et Orange Money.',
+          'Un tableau de bord SaaS accessible sur smartphone et ordinateur avec alertes SMS/WhatsApp automatiques pour les relances clients.',
+          'Une plateforme sécurisée d\'interopérabilité API reliant les comptes bancaires, portefeuilles mobiles et logiciels comptables OHADA.',
+        ],
+      },
+      {
+        questionKey: 'unique_value',
+        suggestions: [
+          'La seule plateforme 100% conçue pour les connexions instables, avec encaissement Mobile Money direct sans frais cachés.',
+          'Une interface intuitive en français facile à prendre en main en moins de 10 minutes, sans formation technique préalable.',
+          'Un support client local ultra-réactif disponible par WhatsApp 7j/7 avec des serveurs hautement sécurisés.',
         ],
       },
       {
         questionKey: 'target_market',
         suggestions: [
-          'PME et micro-entreprises de Douala et Yaoundé (+ 500 000 entreprises informelles), commerçants des marchés centraux.',
-          'Jeunes actifs 18-35 ans en zone urbaine et périurbaine, utilisateurs de smartphones Android (85% du marché).',
-          'Étudiants des universités publiques (Yaoundé I, Douala, Buea), professionnels en reconversion.',
+          'PME, commerçants de détail et grossistes des grands centres urbains (Douala, Yaoundé, Bafoussam, Garoua).',
+          'Professionnels indépendants, consultants et prestataires de services utilisant activement leur smartphone Android.',
+          'Entreprises en phase de croissance cherchant à digitaliser leur force de vente terrain.',
         ],
       },
       {
         questionKey: 'revenue_model',
         suggestions: [
-          'Freemium : version gratuite limitée + abonnement PRO à 5 000 XAF/mois. Commission de 1,5% sur les transactions.',
-          'Abonnement mensuel (Basic: 3 000 XAF, Pro: 15 000 XAF, Enterprise: sur devis). Revenus publicitaires ciblés.',
-          'Commission sur chaque transaction (2-5%), frais d\'inscription pour les vendeurs premium, partenariats B2B.',
+          'Abonnement SaaS mensuel ou annuel par paliers (Starter: 5 000 XAF/mois, Pro: 15 000 XAF/mois, Entreprise: sur devis).',
+          'Modèle freemium avec commission de 1,5% sur les encaissements traités et fonctionnalités premium activables.',
+          'Forfait mensuel tout compris incluant les sauvegardes cloud, les mises à jour et le support technique dédié.',
+        ],
+      },
+      {
+        questionKey: 'pricing',
+        suggestions: [
+          'Pack Starter : 5 000 XAF / mois par utilisateur. Pack Business : 25 000 XAF / mois jusqu\'à 5 postes.',
+          'Commission fixe de 1,8% par transaction Mobile Money réussie, sans frais d\'installation ni engagement.',
+          'Abonnement annuel à 60 000 XAF avec 2 mois offerts et formation sur site incluse.',
         ],
       },
       {
         questionKey: 'sales_channels',
         suggestions: [
-          'Marketing digital (Facebook, WhatsApp Business, TikTok), agents commerciaux terrain dans les marchés, Google Play Store.',
-          'Partenariats avec les coopératives de commerçants, bouche-à-oreille via groupes WhatsApp, présence salons tech (ACTIVSPACES).',
-          'Distribution via réseau d\'agents MTN/Orange Money, publicité radio FM locale, influenceurs digitaux camerounais.',
+          'Marketing digital ciblé (Facebook, Instagram, LinkedIn), démonstrations en ligne et bouche-à-oreille.',
+          'Force de vente terrain directe dans les zones commerciales et partenariats avec les associations professionnelles.',
+          'Téléchargement direct depuis le site web et le Google Play Store avec période d\'essai gratuite de 14 jours.',
         ],
       },
       {
         questionKey: 'key_partners',
         suggestions: [
-          'MTN Cameroun (API MoMo), Orange Cameroun (Orange Money), hébergeurs cloud (AWS, Azure, Google Cloud).',
-          'Incubateurs locaux (ActivSpaces, Silicon Mountain), MINPMEESA (Ministère PME), banques partenaires (Afriland First Bank).',
-          'Fournisseurs de paiement (Flutterwave, CinetPay), operateurs télécom, ONG d\'inclusion digitale.',
+          'Opérateurs télécoms (MTN Cameroun pour l\'API MoMo, Orange Cameroun pour Orange Money).',
+          'Fournisseurs d\'hébergement cloud et de cybersécurité (AWS, Google Cloud, Cloudflare).',
+          'Incubateurs locaux (ActivSpaces, Silicon Mountain) et groupements patronaux (GECAM, CCIMA).',
         ],
       },
       {
         questionKey: 'monthly_costs',
         suggestions: [
-          'Salaires: 2 500 000 XAF (3 développeurs + 1 commercial), Infrastructure cloud: 150 000 XAF, Marketing digital: 300 000 XAF, Loyer bureau: 200 000 XAF.',
-          'Salaires: 1 200 000 XAF (équipe 2 personnes), Serveurs/API: 80 000 XAF, Marketing: 200 000 XAF, Déplacements: 100 000 XAF.',
-          'Salaires: 4 000 000 XAF (équipe 5), Cloud AWS: 250 000 XAF, Marketing: 500 000 XAF, Loyer Douala: 350 000 XAF, Divers: 200 000 XAF.',
-        ],
-      },
-    ],
-    SN: [
-      {
-        questionKey: 'problem_solved',
-        suggestions: [
-          'Les commerçants du marché Sandaga et de Touba n\'ont pas d\'outil simple pour suivre leurs stocks et ventes quotidiennes.',
-          'Le secteur informel sénégalais (90% de l\'économie) n\'a pas accès aux financements faute de traçabilité des transactions.',
+          'Salaires équipe (3 ingénieurs + 1 commercial): 2 200 000 XAF, Hébergement cloud: 180 000 XAF, Marketing: 300 000 XAF, Locaux: 200 000 XAF.',
+          'Salaires fondateurs & support: 1 500 000 XAF, Serveurs & API: 120 000 XAF, Budget pub: 250 000 XAF, Divers: 150 000 XAF.',
         ],
       },
       {
-        questionKey: 'target_market',
+        questionKey: 'required_funding',
         suggestions: [
-          'Commerçants et artisans de Dakar, Thiès et Touba (250 000+ micro-entrepreneurs). Utilisateurs de Wave et Orange Money.',
-          'Diaspora sénégalaise en Europe (400 000 personnes) effectuant des transferts d\'argent mensuels.',
-        ],
-      },
-      {
-        questionKey: 'key_partners',
-        suggestions: [
-          'Wave, Orange Money Sénégal, Sonatel, DER (Délégation à l\'Entrepreneuriat Rapide), CTIC Dakar.',
-          'BCEAO, microfinances locales (PAMECAS), incubateurs (CTIC, Jokkolabs), universités (UCAD, ISM).',
-        ],
-      },
-    ],
-    CI: [
-      {
-        questionKey: 'problem_solved',
-        suggestions: [
-          'Les agriculteurs ivoiriens de cacao et de café perdent 20-30% de marge face aux intermédiaires qui fixent les prix.',
-          'Les jeunes diplômés d\'Abidjan peinent à trouver des emplois qualifiés faute de plateforme de mise en relation fiable.',
-        ],
-      },
-      {
-        questionKey: 'target_market',
-        suggestions: [
-          'Producteurs de cacao et café des régions de San-Pédro, Soubré et Man (800 000 exploitants familiaux).',
-          'Jeunes diplômés 22-35 ans d\'Abidjan et des villes secondaires, utilisateurs smartphones Android.',
+          '15 000 000 XAF : 50% en R&D et développement produit, 35% en acquisition commerciale et 15% en fonds de roulement.',
+          '25 000 000 XAF pour accélérer la conquête commerciale à Douala et Yaoundé et recruter 3 profils clés.',
         ],
       },
     ],
@@ -130,89 +115,164 @@ const SECTOR_SUGGESTIONS: Record<string, SuggestionMap> = {
   AGRO: {
     CM: [
       {
+        questionKey: 'description',
+        suggestions: [
+          'Nous opérons une exploitation agricole moderne spécialisée dans la production et la distribution durable de denrées vivrières à haute valeur ajoutée.',
+          'Nous développons une ferme intégrée combinant maraîchage biologique, élevage et production d\'intrants naturels pour approvisionner les marchés urbains.',
+          'Nous structurons une chaîne de collecte, de stockage et d\'évacuation des récoltes de petits producteurs vers les circuits de distribution urbains.',
+        ],
+      },
+      {
         questionKey: 'problem_solved',
         suggestions: [
-          'Les petits producteurs agricoles perdent jusqu\'à 40% de leurs récoltes post-récolte faute de moyens de stockage, de conservation et de transformation locaux.',
-          'L\'accès aux intrants agricoles de qualité (semences certifiées, engrais) est limité et coûteux pour les exploitants ruraux.',
-          'Les agriculteurs n\'ont pas de visibilité sur les prix du marché en temps réel et vendent à perte aux intermédiaires.',
+          'Les petits exploitants perdent jusqu\'à 35% de leurs récoltes post-récolte faute de stockage adapté et de logistique d\'évacuation rapide.',
+          'L\'accès aux semences améliorées et fertilisants de qualité est coûteux et difficile en milieu rural, limitant les rendements.',
+          'L\'instabilité des cours et le monopole des intermédiaires informels privent les producteurs d\'une juste rémunération.',
         ],
       },
       {
         questionKey: 'solution',
         suggestions: [
-          'Réseau de centres de collecte et de stockage réfrigéré dans les zones rurales du Centre et de l\'Ouest Cameroun, avec application de suivi.',
-          'Plateforme de mise en relation directe producteurs-acheteurs avec prix transparents et logistique intégrée (camions réfrigérés).',
-          'Coopérative d\'achat groupé d\'intrants avec financement par Mobile Money et livraison en zones rurales.',
+          'Mise en place d\'une unité de production rigoureuse avec système d\'irrigation moderne permettant des récoltes régulières toute l\'année.',
+          'Réseau de collecte groupée avec pesée électronique transparente et paiement instantané via Mobile Money.',
+          'Contrats d\'approvisionnement direct avec les centrales d\'achat et supermarchés garantissant des prix stables et rémunérateurs.',
+        ],
+      },
+      {
+        questionKey: 'unique_value',
+        suggestions: [
+          'Des récoltes fraîches garanties sans rupture de stock grâce à notre maîtrise de l\'irrigation et du calendrier cultural.',
+          'Traçabilité complète du champ à l\'assiette avec respect strict des normes de sécurité sanitaire.',
+          'Partenariat gagnant-gagnant offrant des prix justes aux producteurs et des tarifs compétitifs aux acheteurs urbains.',
         ],
       },
       {
         questionKey: 'target_market',
         suggestions: [
-          'Petits agriculteurs (< 5 hectares) des régions du Centre, Ouest et Nord-Ouest Cameroun (2,5 millions d\'exploitants).',
-          'Acheteurs grossistes des marchés de Douala (Marché Central, New Deido), exportateurs cacao/café, restaurants et hôtels.',
-          'Coopératives agricoles enregistrées au MINADER, GIC (Groupes d\'Initiative Commune), agriculteurs connectés smartphone.',
+          'Grossistes et commerçants des grands marchés vivriers urbains (Marché Sandaga Douala, Marché Mokolo Yaoundé).',
+          'Établissements de restauration, hôtels, traiteurs et cantines scolaires/d\'entreprises.',
+          'Supermarchés locaux, supérettes de quartier et groupements d\'achats familiaux.',
         ],
       },
       {
         questionKey: 'revenue_model',
         suggestions: [
-          'Commission de 5-8% sur chaque transaction facilitée + frais de stockage (500 XAF/kg/semaine) + services à valeur ajoutée (certification qualité).',
-          'Abonnement coopérative: 25 000 XAF/mois (accès plateforme + suivi prix). Marge sur achat groupé d\'intrants: 10-15%.',
-          'Marge commerciale sur transformation primaire (15-25%), vente directe aux supermarchés et exportateurs avec contrats annuels.',
+          'Vente directe en gros et demi-gros au kilogramme ou à la caisse selon mercuriale négociée.',
+          'Contrats d\'approvisionnement récurrents bimensuels avec paiement garanti sous 7 jours par Mobile Money.',
+          'Vente de produits calibrés et conditionnés prêts pour les rayons de la grande distribution.',
+        ],
+      },
+      {
+        questionKey: 'pricing',
+        suggestions: [
+          'Prix de gros dégressif au-delà de 500 kg avec acompte de 40% à la réservation de récolte.',
+          'Tarification transparente indexée sur la qualité et la fraîcheur, 15% plus compétitive que les intermédiaires informels.',
+        ],
+      },
+      {
+        questionKey: 'sales_channels',
+        suggestions: [
+          'Livraisons directes aux entrepôts des grossistes et supermarchés partenaires.',
+          'Commandes anticipées via catalogue WhatsApp Business avec service de livraison rapide.',
+          'Comptoir de vente directe à la ferme et stands lors des foires agropastorales régionales.',
         ],
       },
       {
         questionKey: 'key_partners',
         suggestions: [
-          'MINADER (Ministère de l\'Agriculture), IRAD (Institut de Recherche Agricole), coopératives cacaoyères, ONCC.',
-          'MTN Mobile Money, transporteurs locaux, IITA (Institut International d\'Agriculture Tropicale), FAO Cameroun.',
-          'Exportateurs certifiés (Cargill, Barry Callebaut pour le cacao), marchés de gros, Afriland First Bank (crédit agricole).',
+          'Coopératives agricoles locales, MINADER (Ministère de l\'Agriculture) et IRAD pour les semences certifiées.',
+          'Transporteurs ruraux et prestataires logistiques spécialisés dans le fret de denrées périssables.',
+          'Afriland First Bank (crédit agricole de campagne) et opérateurs MTN MoMo / Orange Money.',
         ],
       },
       {
         questionKey: 'monthly_costs',
         suggestions: [
-          'Personnel (5 agents terrain + 1 gestionnaire): 1 500 000 XAF, Location entrepôt: 200 000 XAF, Transport: 400 000 XAF, Énergie (froid): 250 000 XAF.',
-          'Salaires: 800 000 XAF, Achat intrants: variable, Logistique: 300 000 XAF, Communication (crédit tel + marketing): 150 000 XAF.',
+          'Main d\'œuvre permanente (régisseur + 4 ouvriers): 950 000 XAF, Carburant & logistique: 350 000 XAF, Intrants: 400 000 XAF, Maintenance: 150 000 XAF.',
+          'Charges salariales d\'exploitation: 1 200 000 XAF, Énergie & irrigation: 300 000 XAF, Fret vers Douala: 450 000 XAF.',
+        ],
+      },
+      {
+        questionKey: 'required_funding',
+        suggestions: [
+          '20 000 000 XAF pour l\'installation d\'un système d\'irrigation solaire au goutte-à-goutte, l\'achat d\'un utilitaire et le fonds de roulement.',
+          '12 000 000 XAF pour l\'aménagement de 5 hectares, la sécurisation du site et les semences certifiées.',
         ],
       },
     ],
   },
 
   // ============================
-  // AGRO-ALIMENTAIRE
+  // AGRO_ALIMENTAIRE
   // ============================
   AGRO_ALIMENTAIRE: {
     CM: [
       {
+        questionKey: 'description',
+        suggestions: [
+          'Nous créons une unité de transformation agroalimentaire locale qui valorise les fruits et denrées du terroir en produits sains, certifiés et emballés aux normes.',
+          'Nous produisons une marque locale de jus naturels, farines enrichies et sauces artisanales distribuée en supermarchés et boutiques urbaines.',
+          'Nous développons des snacks et produits alimentaires prêts à l\'emploi à base de tubercules locaux (manioc, plantain) pour les actifs urbains.',
+        ],
+      },
+      {
         questionKey: 'problem_solved',
         suggestions: [
-          'Les consommateurs urbains manquent de produits alimentaires locaux transformés, de qualité et à prix abordable (jus, farines, condiments).',
-          'Les matières premières locales (manioc, plantain, arachide) sont sous-valorisées : 70% sont exportées brutes sans transformation.',
-          'L\'absence de normes d\'hygiène et de traçabilité dans les circuits informels crée un problème de confiance des consommateurs.',
+          'Plus de 60% des produits transformés consommés en ville sont importés et coûteux, tandis que les récoltes locales pourrissent dans les bassins de production.',
+          'Les consommateurs manquent d\'options alimentaires locales garantissant une hygiène irréprochable et une longue durée de conservation sans conservateurs chimiques.',
+          'Le secteur informel propose des emballages rudimentaires ne respectant pas les normes sanitaires et ne permettant pas le référencement en magasin.',
         ],
       },
       {
         questionKey: 'solution',
         suggestions: [
-          'Unité semi-industrielle de transformation et conditionnement de produits locaux (farine de manioc, chips de plantain, pâte d\'arachide) avec certification ANOR.',
-          'Marque premium de jus naturels et smoothies locaux (gingembre-citron, baobab, mangue) avec packaging moderne et distribution en supermarchés.',
-          'Plateforme de commande en ligne de plats traditionnels camerounais préparés dans une cuisine certifiée HACCP.',
+          'Une ligne semi-industrielle de pasteurisation, déshydratation et conditionnement hermétique certifiée par l\'ANOR.',
+          'Un packaging moderne, recyclable et attrayant mettant en avant l\'origine locale et les valeurs nutritives.',
+          'Une logistique de distribution directe réapprovisionnant les points de vente toutes les semaines sans rupture.',
+        ],
+      },
+      {
+        questionKey: 'unique_value',
+        suggestions: [
+          '100% naturel, sans additifs chimiques, fabriqué au Cameroun et accessible à un prix inférieur aux marques importées.',
+          'Une qualité organoleptique constante certifiée conforme aux normes sanitaires nationales et internationales.',
+          'Un packaging premium valorisant fièrement le savoir-faire africain et séduisant les classes moyennes et la diaspora.',
         ],
       },
       {
         questionKey: 'target_market',
         suggestions: [
-          'Ménages urbains des classes moyennes de Douala et Yaoundé (revenu > 150 000 XAF/mois), consommateurs supermarchés (Dovv, Santa Lucia, Carrefour).',
-          'Diaspora camerounaise en France et en Europe (300 000 personnes) recherchant des produits du terroir.',
-          'Restaurants, hôtels et traiteurs de Douala (1 500+ établissements), cantines scolaires et d\'entreprise.',
+          'Ménages urbains des classes moyennes et supérieures de Douala et Yaoundé soucieux de la santé de leur famille.',
+          'Grandes surfaces et supérettes (Carrefour, Dovv, Santa Lucia, Spar) et boutiques spécialisées de produits du terroir.',
+          'Diaspora et touristes en quête de produits authentiques prêts à être transportés ou exportés.',
+        ],
+      },
+      {
+        questionKey: 'revenue_model',
+        suggestions: [
+          'Vente directe de produits finis aux distributeurs avec marge brute fabricant de 35% à 45%.',
+          'Vente au détail via notre boutique pilote et les canaux en ligne (WhatsApp Business & livraison à domicile).',
+          'Contrats de fourniture en gros pour les cantines d\'entreprises, hôtels et événements professionnels.',
         ],
       },
       {
         questionKey: 'key_partners',
         suggestions: [
-          'ANOR (Agence des Normes et de la Qualité), coopératives de producteurs, distributeurs (Dovv, Santa Lucia), transporteurs frigorifiques.',
-          'Laboratoires d\'analyse alimentaire (Pasteur Cameroun), CICC, packaging providers locaux, banques (Société Générale Cameroun).',
+          'ANOR (Agence des Normes et de la Qualité) pour les certifications et homologations sanitaires.',
+          'Coopératives de planteurs pour l\'approvisionnement direct en matières premières fraîches.',
+          'Distributeurs et grandes surfaces (Dovv, Santa Lucia, Carrefour) et réseaux de stations-service.',
+        ],
+      },
+      {
+        questionKey: 'monthly_costs',
+        suggestions: [
+          'Personnel atelier & conditionnement: 1 400 000 XAF, Énergie atelier: 250 000 XAF, Matières premières: 1 800 000 XAF, Emballages: 500 000 XAF.',
+        ],
+      },
+      {
+        questionKey: 'required_funding',
+        suggestions: [
+          '18 000 000 XAF pour l\'acquisition d\'équipements inox de transformation, la certification aux normes et les stocks d\'emballages initiaux.',
         ],
       },
     ],
@@ -224,35 +284,59 @@ const SECTOR_SUGGESTIONS: Record<string, SuggestionMap> = {
   SERVICES: {
     CM: [
       {
+        questionKey: 'description',
+        suggestions: [
+          'Nous dirigeons un cabinet de conseil et d\'accompagnement opérationnel dédié à la structuration, la comptabilité et la croissance des PME.',
+          'Nous opérons une agence de services digitaux et communication 360° aidant les entreprises locales à booster leurs ventes.',
+          'Nous proposons des prestations de formation professionnelle certifiante et de mise à disposition de talents qualifiés.',
+        ],
+      },
+      {
         questionKey: 'problem_solved',
         suggestions: [
-          'Les PME camerounaises n\'ont pas accès à des services de conseil stratégique, comptabilité et juridique abordables et de qualité.',
-          'Le manque de compétences digitales dans les entreprises traditionnelles freine la transformation numérique du tissu économique.',
-          'Les freelancers et consultants peinent à trouver des missions régulières et les entreprises manquent de talents qualifiés à temps partiel.',
+          'Les PME et startups n\'ont pas les moyens de recruter des experts à temps plein et souffrent d\'un manque de structuration administrative et financière.',
+          'La communication des entreprises traditionnelles est souvent inefficace sur les canaux digitaux, freinant leur acquisition de nouveaux clients.',
+          'La pénurie de compétences pratiques immédiatement opérationnelles pèse lourdement sur la productivité des équipes en place.',
         ],
       },
       {
         questionKey: 'solution',
         suggestions: [
-          'Cabinet de conseil tout-en-un pour PME : comptabilité, fiscalité, création d\'entreprise, avec offres packagées accessibles.',
-          'Programme de formation professionnelle certifiante en compétences digitales (marketing digital, data, développement web) adapté au marché local.',
-          'Plateforme de mise en relation entre freelancers qualifiés et entreprises, avec gestion de contrats et paiement sécurisé.',
+          'Des offres d\'accompagnement mensualisées tout-en-un adaptées à la taille et au budget de chaque entreprise cliente.',
+          'Des équipes d\'experts seniors intervenant à temps partagé ou en missions commando à fort retour sur investissement.',
+          'Des méthodologies éprouvées intégrant les meilleures pratiques internationales et les contraintes réglementaires OHADA.',
+        ],
+      },
+      {
+        questionKey: 'unique_value',
+        suggestions: [
+          'Une tarification transparente au forfait sans dépassement imprévu, orientée vers des résultats concrets et mesurables.',
+          'La réactivité d\'une structure à taille humaine alliée à la rigueur méthodologique des grands cabinets.',
+          'Une parfaite maîtrise du tissu économique local et un réseau relationnel étendu facilitant les mises en relation d\'affaires.',
         ],
       },
       {
         questionKey: 'target_market',
         suggestions: [
-          'PME formelles et informelles de Douala et Yaoundé (200 000+ entreprises), entrepreneurs en phase de création.',
-          'Professionnels en activité et étudiants 20-40 ans recherchant des compétences numériques employables.',
-          'Multinationales et grandes entreprises camerounaises cherchant des consultants spécialisés pour des missions ponctuelles.',
+          'Dirigeants de PME et PMI (10 à 100 salariés) cherchant à moderniser leur organisation et réussir leur transition.',
+          'Porteurs de projets et entrepreneurs en phase de création ou levée de fonds nécessitant un Business Plan bancable.',
+          'Filiales locales de groupes internationaux recherchant des relais opérationnels fiables et réactifs.',
         ],
       },
       {
         questionKey: 'revenue_model',
         suggestions: [
-          'Forfaits mensuels : Starter (50 000 XAF), Business (150 000 XAF), Premium (350 000 XAF). Honoraires ponctuels sur création d\'entreprise.',
-          'Formation : 75 000-250 000 XAF par module (20h). Certifications professionnelles : 150 000 XAF. Parcours complet : 500 000 XAF.',
-          'Commission 15% sur chaque mission freelance facilitée + abonnement premium entreprise (100 000 XAF/mois).',
+          'Honoraires mensuels récurrents (forfaits Starter à 150 000 XAF, Business à 450 000 XAF, Premium à 900 000 XAF).',
+          'Missions d\'audit, diagnostic et cadrage stratégique facturées au projet avec acompte de 50%.',
+          'Success fees (intéressement aux résultats) sur les montants de financements levés ou contrats d\'affaires générés.',
+        ],
+      },
+      {
+        questionKey: 'key_partners',
+        suggestions: [
+          'Ordre National des Experts-Comptables, juristes d\'affaires et notaires partenaires.',
+          'Chambre de Commerce, d\'Industrie, des Mines et de l\'Artisanat (CCIMA) et syndicats patronaux.',
+          'Banques commerciales partenaires (Afriland, Société Générale, BICEC) et fonds d\'investissement régionaux.',
         ],
       },
     ],
@@ -264,160 +348,246 @@ const SECTOR_SUGGESTIONS: Record<string, SuggestionMap> = {
   COMMERCE: {
     CM: [
       {
+        questionKey: 'description',
+        suggestions: [
+          'Nous exploitons un réseau de distribution moderne alliant point de vente physique stratégique et vente en ligne avec livraison express.',
+          'Nous gérons une centrale d\'achat et d\'approvisionnement direct permettant aux commerçants et ménages d\'acheter au meilleur prix.',
+          'Nous distribuons des équipements, vêtements et accessoires de qualité sourcés auprès de fabricants certifiés.',
+        ],
+      },
+      {
         questionKey: 'problem_solved',
         suggestions: [
-          'Les consommateurs de Douala et Yaoundé doivent se déplacer physiquement dans plusieurs marchés pour trouver les meilleurs prix.',
-          'Les commerçants du marché Mokolo ou Mboppi n\'ont aucune présence en ligne et perdent des clients face aux plateformes étrangères.',
-          'L\'import de produits (électronique, vêtements, cosmétiques) depuis la Chine et Dubaï est complexe, opaque et risqué pour les petits commerçants.',
+          'Les clients perdent des heures dans les embouteillages pour trouver des articles fiables et négocier des prix opaques dans les marchés.',
+          'La prolifération des contrefaçons et produits de mauvaise qualité crée une méfiance permanente chez les consommateurs.',
+          'Les petits revendeurs peinent à s\'approvisionner à bon prix faute de volume et subissent les aléas de la logistique d\'importation.',
         ],
       },
       {
         questionKey: 'solution',
         suggestions: [
-          'Application marketplace locale type "Jumia killer" avec livraison dernière kilomètre par réseau de livreurs moto.',
-          'Service d\'import groupé et sécurisé depuis la Chine/Dubaï avec pré-inspection qualité, dédouanement et livraison entrepôt.',
-          'Réseau de boutiques physiques + e-commerce spécialisé (cosmétiques africains, mode locale) avec click-and-collect.',
+          'Un catalogue multicanal actualisé en temps réel avec commande en 1 clic sur WhatsApp et livraison le jour même.',
+          'Des garanties claires de conformité avec possibilité d\'échange sous 48h et paiement à la livraison par Mobile Money.',
+          'Des commandes groupées permettant d\'obtenir des tarifs grossistes et d\'en faire bénéficier directement nos clients.',
+        ],
+      },
+      {
+        questionKey: 'unique_value',
+        suggestions: [
+          'La certitude d\'acheter des produits authentiques et garantis au prix le plus juste du marché sans mauvaises surprises.',
+          'Livraison rapide en moins de 3 heures dans toute l\'agglomération avec suivi par SMS et livreurs dédiés.',
+          'Un service après-vente dévoué qui résout chaque réclamation sous 24h avec le sourire.',
         ],
       },
       {
         questionKey: 'target_market',
         suggestions: [
-          'Consommateurs urbains 18-45 ans de Douala et Yaoundé utilisant smartphones (3 millions de mobinautes actifs).',
-          'Commerçants revendeurs des marchés centraux cherchant à s\'approvisionner à meilleur prix (50 000+ revendeurs).',
-          'Femmes actives 25-50 ans, consommatrices de cosmétiques et mode, suivant les tendances via Instagram et TikTok.',
+          'Actifs urbains, cadres et étudiants connectés utilisant intensivement WhatsApp et les réseaux sociaux.',
+          'Boutiques de quartier, salons de coiffure et commerces de proximité s\'approvisionnant en semi-gros.',
+          'Entreprises pour leurs dotations, fournitures professionnelles et cadeaux d\'affaires.',
+        ],
+      },
+      {
+        questionKey: 'revenue_model',
+        suggestions: [
+          'Marge commerciale brute de 30% à 45% sur chaque article vendu au détail.',
+          'Tarifs grossistes avec marge de 15% à 20% sur les commandes en volume par carton.',
+          'Frais de livraison forfaitaires par zone urbaine (1 500 à 3 000 XAF par course).',
+        ],
+      },
+      {
+        questionKey: 'key_partners',
+        suggestions: [
+          'Fabricants et grossistes officiels partenaires pour un approvisionnement direct et garanti.',
+          'Sociétés de messagerie express et réseau de livreurs deux-roues géolocalisés.',
+          'Opérateurs MTN MoMo, Orange Money et plateformes de paiement électronique.',
         ],
       },
     ],
   },
 };
 
-// Fallback suggestions for countries not specifically mapped
-const GENERIC_SUGGESTIONS: SectorSuggestion[] = [
-  {
-    questionKey: 'revenue_model',
-    suggestions: [
-      'Modèle freemium avec conversion vers abonnement payant mensuel.',
-      'Commission sur transactions (2-8%) avec volume minimum garanti.',
-      'Vente directe + services premium sur abonnement mensuel.',
-    ],
-  },
-  {
-    questionKey: 'sales_channels',
-    suggestions: [
-      'Réseaux sociaux (Facebook, WhatsApp, Instagram), agents commerciaux terrain, bouche-à-oreille.',
-      'Google Play / App Store, partenariats avec associations professionnelles, salons et foires.',
-      'Site web + SEO local, publicité radio, partenariats avec opérateurs télécoms.',
-    ],
-  },
-];
-
-// ============================================
-// GET SUGGESTIONS FOR A GIVEN CONTEXT
-// ============================================
+// Suggestions génériques transversales d'experts pour toutes autres questions ou pays
+const GENERAL_EXPERT_SUGGESTIONS: Record<string, string[]> = {
+  description: [
+    'Notre entreprise apporte une réponse moderne et structurée aux besoins fondamentaux du marché local avec un ancrage solide.',
+    'Nous développons une activité à fort impact économique et social combinant excellence opérationnelle et accessibilité financière.',
+  ],
+  problem_solved: [
+    'Le manque de professionnalisme, les retards chroniques et l\'opacité tarifaire nuisent à l\'efficacité des acteurs locaux.',
+    'L\'offre actuelle est fragmentée, peu fiable et ne répond pas aux exigences croissantes de qualité et de réactivité.',
+  ],
+  solution: [
+    'Une offre claire, standardisée et disponible immédiatement, s\'appuyant sur les technologies mobiles et un service de proximité.',
+    'Une solution intégrée de bout en bout qui élimine les intermédiaires inutiles pour réduire les coûts et sécuriser la prestation.',
+  ],
+  unique_value: [
+    'Notre engagement indéfectible sur la qualité, la ponctualité et la satisfaction client garantie avec paiement sécurisé.',
+    'Une expertise technique pointue associée à une tarification compétitive pensée pour le pouvoir d\'achat local.',
+  ],
+  target_market: [
+    'PME, professionnels et ménages urbains actifs exigeant un service de qualité et un gain de temps précieux.',
+    'Acteurs économiques locaux en phase de développement recherchant des prestataires fiables et transparents.',
+  ],
+  revenue_model: [
+    'Ventes directes au comptant combinées à des abonnements récurrents et des prestations sur mesure.',
+    'Tarification transparente par pallier de volume avec acompte Mobile Money sécurisé.',
+  ],
+  sales_channels: [
+    'WhatsApp Business, démarchage direct de proximité, bouche-à-oreille et campagnes ciblées sur réseaux sociaux.',
+    'Points de contact physiques stratégiques et partenariats avec des prescripteurs d\'affaires locaux.',
+  ],
+  key_partners: [
+    'Opérateurs de paiement mobile locaux, transporteurs et prestataires logistiques fiables.',
+    'Institutions financières locales, associations professionnelles et mentors sectoriels chevronnés.',
+  ],
+  monthly_costs: [
+    'Salaires de l\'équipe permanente, loyer des locaux d\'exploitation, énergie, télécoms et logistique de distribution.',
+  ],
+  required_funding: [
+    '15 000 000 XAF pour financer les équipements opérationnels, le marketing d\'acquisition et le fonds de roulement initial.',
+  ],
+};
 
 export function getSuggestionsForField(
   sector: string,
   country: string,
-  questionKey: string
+  questionKey: string,
+  projectName?: string
 ): string[] {
-  // Try sector + country specific
-  const sectorData = SECTOR_SUGGESTIONS[sector];
+  const normSector = (sector || 'TECH').toUpperCase();
+  const normCountry = (country || 'CM').toUpperCase();
+
+  let results: string[] = [];
+
+  const sectorData = SECTOR_SUGGESTIONS[normSector];
   if (sectorData) {
-    const countryData = sectorData[country];
+    const countryData = sectorData[normCountry] || sectorData['CM'];
     if (countryData) {
-      const fieldSugg = countryData.find(s => s.questionKey === questionKey);
-      if (fieldSugg) return fieldSugg.suggestions;
-    }
-    // Try sector with CM as default if country not found
-    const defaultCountry = sectorData['CM'];
-    if (defaultCountry) {
-      const fieldSugg = defaultCountry.find(s => s.questionKey === questionKey);
-      if (fieldSugg) return fieldSugg.suggestions;
+      const match = countryData.find(s => s.questionKey === questionKey);
+      if (match && match.suggestions.length > 0) {
+        results = [...match.suggestions];
+      }
     }
   }
 
-  // Try generic
-  const generic = GENERIC_SUGGESTIONS.find(s => s.questionKey === questionKey);
-  if (generic) return generic.suggestions;
+  // Fallback si pas de résultat sectoriel spécifique
+  if (results.length === 0 && GENERAL_EXPERT_SUGGESTIONS[questionKey]) {
+    results = [...GENERAL_EXPERT_SUGGESTIONS[questionKey]];
+  }
 
-  return [];
+  // Remplacement contextuel du nom de projet si fourni
+  if (projectName && projectName.trim().length > 0) {
+    const cleanName = projectName.trim();
+    results = results.map(s =>
+      s.replace(/Notre entreprise/g, cleanName)
+       .replace(/Nous/g, `${cleanName}`)
+    );
+  }
+
+  return results;
 }
 
 // ============================================
-// SUGGESTION CHIPS COMPONENT
+// COMPOSANT SMART SUGGESTIONS
 // ============================================
 
 interface SmartSuggestionsProps {
   sector: string;
   country: string;
   questionKey: string;
-  onSelect: (suggestion: string) => void;
   currentValue?: string;
+  projectName?: string;
+  onSelect: (suggestion: string) => void;
 }
 
 export function SmartSuggestions({
   sector,
   country,
   questionKey,
+  currentValue = '',
+  projectName = '',
   onSelect,
-  currentValue,
 }: SmartSuggestionsProps) {
   const [expanded, setExpanded] = useState(false);
-  const suggestions = getSuggestionsForField(sector, country, questionKey);
+  const suggestions = getSuggestionsForField(sector, country, questionKey, projectName);
 
   if (suggestions.length === 0) return null;
 
   const displaySuggestions = expanded ? suggestions : suggestions.slice(0, 2);
 
   return (
-    <div className="mt-2 space-y-2">
-      <div className="flex items-center gap-1.5">
-        <Sparkles className="w-3 h-3 text-amber-500" />
-        <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-          Suggestions intelligentes
+    <div className="mt-2.5 space-y-2 p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20 backdrop-blur-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+            Suggestions expertes sectorielles
+          </span>
+        </div>
+        <span className="text-[10px] text-muted-foreground">
+          Cliquez pour insérer
         </span>
       </div>
+
       <div className="space-y-1.5">
         {displaySuggestions.map((suggestion, idx) => {
           const isSelected = currentValue?.includes(suggestion);
           return (
-            <button
+            <div
               key={idx}
-              type="button"
-              onClick={() => onSelect(suggestion)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-xs leading-relaxed transition-all duration-200 border ${
+              className={`group flex items-start gap-2 p-2.5 rounded-lg text-xs leading-relaxed transition-all duration-200 border cursor-pointer ${
                 isSelected
-                  ? 'bg-primary/10 border-primary/30 text-primary'
-                  : 'bg-muted/30 border-transparent hover:bg-muted/60 hover:border-muted-foreground/20 text-muted-foreground hover:text-foreground'
+                  ? 'bg-primary/10 border-primary/40 text-primary font-medium'
+                  : 'bg-background/80 border-border/50 hover:bg-muted/70 hover:border-amber-500/30 text-foreground/80 hover:text-foreground'
               }`}
+              onClick={() => onSelect(suggestion)}
             >
-              <div className="flex items-start gap-2">
+              <div className="mt-0.5 shrink-0">
                 {isSelected ? (
-                  <Check className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                  <Check className="w-3.5 h-3.5 text-primary" />
                 ) : (
-                  <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                  <Lightbulb className="w-3.5 h-3.5 text-amber-500 group-hover:scale-110 transition-transform" />
                 )}
+              </div>
+              <div className="flex-1">
                 <span>{suggestion}</span>
               </div>
-            </button>
+              {currentValue && currentValue.length > 5 && !isSelected && (
+                <button
+                  type="button"
+                  title="Ajouter au texte existant"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const combined = `${currentValue.trim()}\n\n${suggestion}`;
+                    onSelect(combined);
+                  }}
+                  className="shrink-0 p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-0.5 text-[10px]"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Ajouter</span>
+                </button>
+              )}
+            </div>
           );
         })}
       </div>
+
       {suggestions.length > 2 && (
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400 hover:underline pt-1 transition-colors"
         >
           {expanded ? (
             <>
-              <ChevronUp className="w-3 h-3" />
-              Moins de suggestions
+              <ChevronUp className="w-3.5 h-3.5" />
+              Voir moins
             </>
           ) : (
             <>
-              <ChevronDown className="w-3 h-3" />
-              +{suggestions.length - 2} suggestion{suggestions.length - 2 > 1 ? 's' : ''}
+              <ChevronDown className="w-3.5 h-3.5" />
+              Voir +{suggestions.length - 2} autre{suggestions.length - 2 > 1 ? 's' : ''} suggestion{suggestions.length - 2 > 1 ? 's' : ''}
             </>
           )}
         </button>

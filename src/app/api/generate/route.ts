@@ -319,8 +319,9 @@ export async function POST(request: NextRequest) {
     });
 
     // 5. Exécution de la génération via le backend Python avec Fallback Expert immédiat
+    const realProjectName = formData.company_name?.trim() || project.name;
     const projectContext = {
-      name: project.name,
+      name: realProjectName,
       sector: project.sector,
       country: project.country,
       formData,
@@ -411,6 +412,7 @@ export async function POST(request: NextRequest) {
     await db.project.update({
       where: { id: projectId },
       data: {
+        name: realProjectName,
         status: 'COMPLETED',
         completedAt: new Date(),
       },

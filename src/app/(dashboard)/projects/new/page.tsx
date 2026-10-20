@@ -399,6 +399,7 @@ export default function NewProjectPage() {
                   country={country}
                   questionKey={question.key}
                   currentValue={answers[question.key] || ''}
+                  projectName={answers.company_name || ''}
                   onSelect={(suggestion) => {
                     handleAnswerChange(question.key, suggestion);
                     toast.success('Suggestion appliquée avec succès !');
