@@ -22,6 +22,9 @@ jobs:
   deploy:
     name: Deploy to Oracle VM
     runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://bizgen.boukarou-os.com
     # Only deploy if CI passed (or manual trigger)
     if: >
       github.event_name == 'workflow_dispatch' ||
