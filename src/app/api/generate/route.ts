@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { db } from '@/lib/db';
 import { bmcSchema, leanCanvasSchema, businessPlanSchema } from '@/lib/validations';
+import { generateExpertBMC, generateExpertLeanCanvas, generateExpertBusinessPlan } from '@/lib/generator/business-generator';
 
 // AI SDK for generation
 import ZAI from 'z-ai-web-dev-sdk';
@@ -273,14 +274,20 @@ export async function POST(request: NextRequest) {
 
     const userPlan = subscription?.plan || 'FREE';
 
-    if ((type === 'bp' || type === 'all') && userPlan === 'FREE') {
+    // Si l'utilisateur demande spécifiquement le Business Plan payant en étant FREE
+    if (type === 'bp' && userPlan === 'FREE') {
       return NextResponse.json(
-        { error: 'Le Business Plan nécessite un plan BASIC ou PRO.' },
+        { error: 'Le Business Plan détaillé nécessite un abonnement BASIC ou PRO. Vous pouvez générer votre Business Model Canvas gratuitement.' },
         { status: 403 }
       );
     }
 
-    // 3. Préparer les données
+    // Si l'utilisateur FREE demande 'all', on génère BMC + Lean (sans BP)
+    // effectiveType reste 'all' mais on exclut le BP dans la logique plus bas
+    const effectiveType = type;
+    const canGenerateBP = userPlan !== 'FREE';
+
+    // 3. Préparer les données du formulaire
     const formData: Record<string, string> = {};
     project.formInputs.forEach(input => {
       formData[input.questionKey] = input.answerValue;
@@ -311,10 +318,110 @@ export async function POST(request: NextRequest) {
       data: { status: 'GENERATING' },
     });
 
-    // 5. Exécution de la génération via le backend Python (Expert)
-    const pythonResult = await callBackendPython(projectId, type, session.user.id);
+    // 5. Exécution de la génération via le backend Python avec Fallback Expert immédiat
+    const projectContext = {
+      name: project.name,
+      sector: project.sector,
+      country: project.country,
+      formData,
+    };
 
-    return NextResponse.json(pythonResult);
+    let generationResults: Record<string, unknown> = {};
+
+    try {
+      const pythonResult = await callBackendPython(projectId, effectiveType, session.user.id);
+      if (pythonResult && pythonResult.success) {
+        return NextResponse.json(pythonResult);
+      }
+      generationResults = pythonResult?.results || {};
+    } catch (backendError) {
+      console.warn('Backend Python non joignable ou sans clé API, bascule sur le moteur expert local:', backendError);
+    }
+
+    // Si le backend Python n'a pas produit de résultat complet, génération experte locale directe
+    const results: Record<string, unknown> = {};
+
+    if (effectiveType === 'bmc' || effectiveType === 'all') {
+      const bmcData = generateExpertBMC(projectContext);
+      results.bmc = bmcData;
+
+      await db.canvasData.upsert({
+        where: {
+          docId_canvasType: {
+            docId: generatedDoc.id,
+            canvasType: 'BUSINESS_MODEL_CANVAS',
+          },
+        },
+        update: {
+          blocks: JSON.stringify(bmcData),
+          updatedAt: new Date(),
+        },
+        create: {
+          docId: generatedDoc.id,
+          canvasType: 'BUSINESS_MODEL_CANVAS',
+          blocks: JSON.stringify(bmcData),
+        },
+      });
+    }
+
+    if (effectiveType === 'lean' || effectiveType === 'all') {
+      const leanData = generateExpertLeanCanvas(projectContext);
+      results.lean = leanData;
+
+      await db.canvasData.upsert({
+        where: {
+          docId_canvasType: {
+            docId: generatedDoc.id,
+            canvasType: 'LEAN_CANVAS',
+          },
+        },
+        update: {
+          blocks: JSON.stringify(leanData),
+          updatedAt: new Date(),
+        },
+        create: {
+          docId: generatedDoc.id,
+          canvasType: 'LEAN_CANVAS',
+          blocks: JSON.stringify(leanData),
+        },
+      });
+    }
+
+    if (effectiveType === 'bp' || (effectiveType === 'all' && canGenerateBP)) {
+      const bpData = generateExpertBusinessPlan(projectContext);
+      results.bp = bpData;
+
+      await db.generatedDocument.update({
+        where: { id: generatedDoc.id },
+        data: {
+          rawContent: JSON.stringify(bpData),
+        },
+      });
+    }
+
+    // Finaliser le statut à COMPLETED
+    await db.generatedDocument.update({
+      where: { id: generatedDoc.id },
+      data: {
+        status: 'COMPLETED',
+        version: { increment: 1 },
+      },
+    });
+
+    await db.project.update({
+      where: { id: projectId },
+      data: {
+        status: 'COMPLETED',
+        completedAt: new Date(),
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      documentId: generatedDoc.id,
+      status: 'COMPLETED',
+      results,
+    });
 
   } catch (error: any) {
     console.error('Erreur de génération critique:', error);
