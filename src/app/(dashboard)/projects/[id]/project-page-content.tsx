@@ -26,6 +26,8 @@ import {
 import { BusinessModelCanvas } from '@/components/canvas/business-model-canvas';
 import { LeanCanvas } from '@/components/canvas/lean-canvas';
 import { BusinessPlanViewer } from '@/components/canvas/business-plan-viewer';
+import { FinancialEngine } from '@/components/canvas/financial-engine';
+import { PitchDeckGenerator } from '@/components/canvas/pitch-deck-generator';
 import { toast } from 'sonner';
 import { useExportPDF } from '@/lib/export-pdf';
 
@@ -354,10 +356,12 @@ export function ProjectPageContent({ id }: { id: string }) {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 max-w-3xl">
           <TabsTrigger value="bmc">Business Model Canvas</TabsTrigger>
           <TabsTrigger value="lean">Lean Canvas</TabsTrigger>
           <TabsTrigger value="bp">Business Plan</TabsTrigger>
+          <TabsTrigger value="finance">Modèle Financier</TabsTrigger>
+          <TabsTrigger value="pitch">Pitch Deck</TabsTrigger>
         </TabsList>
 
         <TabsContent value="bmc" className="mt-6">
@@ -418,6 +422,24 @@ export function ProjectPageContent({ id }: { id: string }) {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="finance" className="mt-6">
+          <FinancialEngine
+            projectName={project.name}
+            currency="XAF"
+            initialData={businessPlan?.financialPlan}
+          />
+        </TabsContent>
+
+        <TabsContent value="pitch" className="mt-6">
+          <PitchDeckGenerator
+            projectName={project.name}
+            sector={project.sector}
+            country={project.country}
+            bmcData={bmcBlocks}
+            businessPlanData={businessPlan}
+          />
         </TabsContent>
       </Tabs>
     </div>

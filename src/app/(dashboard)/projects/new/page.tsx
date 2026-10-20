@@ -33,6 +33,7 @@ import {
 import { SECTOR_LABELS, COUNTRIES, FORM_STEPS, SECTOR_QUESTIONS } from '@/lib/constants';
 import type { Sector, FormQuestion } from '@/types';
 import { toast } from 'sonner';
+import { SmartSuggestions } from '@/components/smart-suggestions';
 
 const stepIcons: Record<string, React.ElementType> = {
   'Building2': Building2,
@@ -389,6 +390,20 @@ export default function NewProjectPage() {
 
               {question.helpText && (
                 <p className="text-sm text-muted-foreground">{question.helpText}</p>
+              )}
+
+              {/* Suggestions intelligentes par secteur et pays */}
+              {sector && (question.type === 'textarea' || question.type === 'text') && (
+                <SmartSuggestions
+                  sector={sector}
+                  country={country}
+                  questionKey={question.key}
+                  currentValue={answers[question.key] || ''}
+                  onSelect={(suggestion) => {
+                    handleAnswerChange(question.key, suggestion);
+                    toast.success('Suggestion appliquée avec succès !');
+                  }}
+                />
               )}
             </div>
           ))}
