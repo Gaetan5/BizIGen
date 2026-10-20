@@ -1,0 +1,167 @@
+{
+  "name": "BizGen AI - Cognitive Hub & Market Intelligence",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bizgen-events",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook Ingestion BizGen",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "bizgen-events-inbound"
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.eventType }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "PROJECT_CREATED",
+              "output": 0
+            },
+            {
+              "value2": "GENERATION_COMPLETED",
+              "output": 1
+            }
+          ]
+        }
+      },
+      "id": "2",
+      "name": "Routeur d'Événements",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "content": "## 1. Projet Créé (Pré-Veille Concurrentielle)\nLorsqu'un projet est créé, n8n effectue une recherche de fond sur le secteur et la région pour alimenter les futures suggestions.",
+        "height": 220,
+        "width": 380
+      },
+      "id": "sticky-1",
+      "name": "Note Pré-Veille",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [700, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\n\n// Synthèse des paramètres de recherche pour le secteur et le pays\nconst searchQueries = [\n  `Concurrents ${body.sector} ${body.country} marché local`,\n  `Prix et mercuriale ${body.sector} ${body.country} 2026`,\n  `Réglementation et subventions ${body.sector} ${body.country}`\n];\n\nreturn {\n  projectId: body.projectId,\n  projectName: body.projectName,\n  sector: body.sector,\n  country: body.country,\n  searchQueries\n};"
+      },
+      "id": "3",
+      "name": "Préparer Requêtes Recherche",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [740, 200]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu es un expert senior en intelligence économique pour l'Afrique.\nAnalyse le projet suivant :\n- Nom : {{ $json.body.projectName }}\n- Secteur : {{ $json.body.sector }}\n- Pays : {{ $json.body.country }}\n\nIdentifie et liste au format JSON strict :\n1. \"verifiedCompetitors\" : 3 concurrents ou alternatives réelles existant dans ce pays\n2. \"pricingBenchmarks\" : 2 repères de prix réalistes pour ce secteur\n3. \"localRegulations\" : 1 contrainte réglementaire clé (ex: homologation sanitaire, agrément fintech, fiscalité)\n4. \"fundingOpportunities\" : 2 fonds ou programmes de subventions actifs dans cette zone (ex: DER, MINPMEESA, PRODEL, etc.)\n\nRéponds UNIQUEMENT avec un JSON valide sans markdown."
+      },
+      "id": "4",
+      "name": "Agent IA Recherche Marché",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [740, 420]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://bizgen.boukarou-os.com/api/webhooks/n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-API-Key",
+              "value": "={{ $env.INTERNAL_API_KEY || 'generate_a_secure_32_char_hex_string' }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"ENRICH_MARKET_INTELLIGENCE\",\n  \"projectId\": \"{{ $('Webhook Ingestion BizGen').item.json.body.projectId }}\",\n  \"data\": {{ JSON.stringify($json.output || $json) }}\n}"
+      },
+      "id": "5",
+      "name": "Rappel BizGen (Injection Données Marché)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1020, 420]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "6",
+      "name": "Notification WhatsApp / Slack",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1260, 420]
+    }
+  ],
+  "connections": {
+    "Webhook Ingestion BizGen": {
+      "main": [
+        [
+          {
+            "node": "Routeur d'Événements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Routeur d'Événements": {
+      "main": [
+        [
+          {
+            "node": "Préparer Requêtes Recherche",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agent IA Recherche Marché",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent IA Recherche Marché": {
+      "main": [
+        [
+          {
+            "node": "Rappel BizGen (Injection Données Marché)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rappel BizGen (Injection Données Marché)": {
+      "main": [
+        [
+          {
+            "node": "Notification WhatsApp / Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

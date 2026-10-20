@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { db } from '@/lib/db';
+import { dispatchN8nEvent } from '@/lib/events/n8n-dispatcher';
 
 // GET /api/projects - List all projects for user
 export async function GET() {
@@ -116,6 +117,17 @@ export async function POST(request: NextRequest) {
         data: { projectsUsed: { increment: 1 } },
       });
     }
+
+    // Notification asynchrone du hub n8n (recherche de marché préalable, alertes)
+    dispatchN8nEvent('PROJECT_CREATED', {
+      projectId: project.id,
+      projectName: project.name,
+      sector: project.sector,
+      country: project.country,
+      userId,
+      userEmail: session.user.email || undefined,
+      userPlan,
+    });
 
     return NextResponse.json({ project });
   } catch (error) {

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth-config';
 import { db } from '@/lib/db';
 import { bmcSchema, leanCanvasSchema, businessPlanSchema } from '@/lib/validations';
 import { generateExpertBMC, generateExpertLeanCanvas, generateExpertBusinessPlan } from '@/lib/generator/business-generator';
+import { dispatchN8nEvent } from '@/lib/events/n8n-dispatcher';
 
 // AI SDK for generation
 import ZAI from 'z-ai-web-dev-sdk';
@@ -415,6 +416,22 @@ export async function POST(request: NextRequest) {
         name: realProjectName,
         status: 'COMPLETED',
         completedAt: new Date(),
+      },
+    });
+
+    // Notification asynchrone du hub n8n (enrichissement de marché, notification WhatsApp, audit mentor)
+    dispatchN8nEvent('GENERATION_COMPLETED', {
+      projectId,
+      projectName: realProjectName,
+      sector: project.sector,
+      country: project.country,
+      userId: session.user.id,
+      userEmail: session.user.email || undefined,
+      userPlan,
+      data: {
+        effectiveType,
+        documentId: generatedDoc.id,
+        resultsKeys: Object.keys(results),
       },
     });
 
