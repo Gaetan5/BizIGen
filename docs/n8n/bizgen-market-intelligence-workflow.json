@@ -17,7 +17,7 @@
     {
       "parameters": {
         "dataType": "string",
-        "value1": "={{ $json.body.eventType }}",
+        "value1": "={{ $json.body?.eventType || $json.eventType }}",
         "rules": {
           "rules": [
             {
@@ -51,7 +51,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body;\n\n// Synthèse des paramètres de recherche pour le secteur et le pays\nconst searchQueries = [\n  `Concurrents ${body.sector} ${body.country} marché local`,\n  `Prix et mercuriale ${body.sector} ${body.country} 2026`,\n  `Réglementation et subventions ${body.sector} ${body.country}`\n];\n\nreturn {\n  projectId: body.projectId,\n  projectName: body.projectName,\n  sector: body.sector,\n  country: body.country,\n  searchQueries\n};"
+        "jsCode": "const item = $input.first().json;\nconst body = item.body || item;\n\n// Synthèse des paramètres de recherche pour le secteur et le pays\nconst searchQueries = [\n  `Concurrents ${body.sector || ''} ${body.country || ''} marché local`,\n  `Prix et mercuriale ${body.sector || ''} ${body.country || ''} 2026`,\n  `Réglementation et subventions ${body.sector || ''} ${body.country || ''}`\n];\n\nreturn {\n  projectId: body.projectId,\n  projectName: body.projectName,\n  sector: body.sector,\n  country: body.country,\n  searchQueries\n};"
       },
       "id": "3",
       "name": "Préparer Requêtes Recherche",
@@ -62,7 +62,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Tu es un expert senior en intelligence économique pour l'Afrique.\nAnalyse le projet suivant :\n- Nom : {{ $json.body.projectName }}\n- Secteur : {{ $json.body.sector }}\n- Pays : {{ $json.body.country }}\n\nIdentifie et liste au format JSON strict :\n1. \"verifiedCompetitors\" : 3 concurrents ou alternatives réelles existant dans ce pays\n2. \"pricingBenchmarks\" : 2 repères de prix réalistes pour ce secteur\n3. \"localRegulations\" : 1 contrainte réglementaire clé (ex: homologation sanitaire, agrément fintech, fiscalité)\n4. \"fundingOpportunities\" : 2 fonds ou programmes de subventions actifs dans cette zone (ex: DER, MINPMEESA, PRODEL, etc.)\n\nRéponds UNIQUEMENT avec un JSON valide sans markdown."
+        "text": "=Tu es un expert senior en intelligence économique pour l'Afrique.\nAnalyse le projet suivant :\n- Nom : {{ $json.body?.projectName || $json.projectName }}\n- Secteur : {{ $json.body?.sector || $json.sector }}\n- Pays : {{ $json.body?.country || $json.country }}\n\nIdentifie et liste au format JSON strict :\n1. \"verifiedCompetitors\" : 3 concurrents ou alternatives réelles existant dans ce pays\n2. \"pricingBenchmarks\" : 2 repères de prix réalistes pour ce secteur\n3. \"localRegulations\" : 1 contrainte réglementaire clé (ex: homologation sanitaire, agrément fintech, fiscalité)\n4. \"fundingOpportunities\" : 2 fonds ou programmes de subventions actifs dans cette zone (ex: DER, MINPMEESA, PRODEL, etc.)\n\nRéponds UNIQUEMENT avec un JSON valide sans markdown."
       },
       "id": "4",
       "name": "Agent IA Recherche Marché",
@@ -89,7 +89,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"action\": \"ENRICH_MARKET_INTELLIGENCE\",\n  \"projectId\": \"{{ $('Webhook Ingestion BizGen').item.json.body.projectId }}\",\n  \"data\": {{ JSON.stringify($json.output || $json) }}\n}"
+        "jsonBody": "={\n  \"action\": \"ENRICH_MARKET_INTELLIGENCE\",\n  \"projectId\": \"{{ $('Webhook Ingestion BizGen').item.json.body?.projectId || $('Webhook Ingestion BizGen').item.json.projectId }}\",\n  \"data\": {{ JSON.stringify($json.output || $json) }}\n}"
       },
       "id": "5",
       "name": "Rappel BizGen (Injection Données Marché)",

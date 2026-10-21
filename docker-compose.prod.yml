@@ -21,6 +21,10 @@ services:
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - PYTHON_BACKEND_URL=http://api:3001
       - INTERNAL_API_KEY=${INTERNAL_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - AI_MODEL=${AI_MODEL:-gpt-4o-mini}
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL:-}
+      - N8N_WEBHOOK_SECRET=${N8N_WEBHOOK_SECRET:-}
     depends_on:
       api:
         condition: service_healthy
