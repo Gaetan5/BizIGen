@@ -5,24 +5,39 @@ import { db } from '@/lib/db';
 export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.text();
-    const secret = process.env.N8N_WEBHOOK_SECRET || process.env.INTERNAL_API_KEY || 'bizgen-secret-token';
+    // 1. Liste des clés secrètes autorisées (environnement ou jeton d'intégration dédié)
+    const DEDICATED_N8N_KEY = '4c0e4bb8721c10134794ea44382208aadd2570eb7a5560918628064fb4f1d115';
+    const authorizedSecrets = [
+      process.env.N8N_WEBHOOK_SECRET,
+      process.env.INTERNAL_API_KEY,
+      DEDICATED_N8N_KEY,
+    ].filter((s): s is string => Boolean(s && s.length >= 16));
 
-    // 1. Vérification de sécurité (Signature HMAC ou clé interne)
     const signature = request.headers.get('x-bizgen-signature');
     const internalKey = request.headers.get('x-internal-api-key') || request.headers.get('x-bizgen-secret');
 
     let isAuthorized = false;
-    if (internalKey && (internalKey === secret || internalKey === process.env.INTERNAL_API_KEY)) {
+
+    // Vérification par clé interne directe
+    if (internalKey && authorizedSecrets.includes(internalKey)) {
       isAuthorized = true;
-    } else if (signature) {
-      const computed = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-      if (crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(computed))) {
-        isAuthorized = true;
+    }
+
+    // Vérification par signature HMAC-SHA256
+    if (!isAuthorized && signature) {
+      for (const secret of authorizedSecrets) {
+        const computed = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+        const sigBuf = Buffer.from(signature);
+        const compBuf = Buffer.from(computed);
+        if (sigBuf.length === compBuf.length && crypto.timingSafeEqual(sigBuf, compBuf)) {
+          isAuthorized = true;
+          break;
+        }
       }
     }
 
     // En environnement de dev si pas de secret explicite, autoriser pour faciliter les tests
-    if (!process.env.N8N_WEBHOOK_SECRET && !process.env.INTERNAL_API_KEY && process.env.NODE_ENV === 'development') {
+    if (!isAuthorized && authorizedSecrets.length === 0 && process.env.NODE_ENV === 'development') {
       isAuthorized = true;
     }
 

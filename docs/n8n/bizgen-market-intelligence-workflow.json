@@ -79,7 +79,7 @@
           "parameters": [
             {
               "name": "X-Internal-API-Key",
-              "value": "={{ $env.INTERNAL_API_KEY || 'generate_a_secure_32_char_hex_string' }}"
+              "value": "={{ $env.INTERNAL_API_KEY || '4c0e4bb8721c10134794ea44382208aadd2570eb7a5560918628064fb4f1d115' }}"
             },
             {
               "name": "Content-Type",
